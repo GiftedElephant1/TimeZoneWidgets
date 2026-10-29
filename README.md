@@ -54,7 +54,8 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
 - **Convert a time**: double-click a widget or a ribbon zone, type a time in that zone (9:30 pm,
   21:30, 9pm…) and see it in your local time, with a table of the surrounding hours converted to
-  every zone you have. Swap the direction to go from your time to theirs; pick a date for day
+  every zone you have. Roll the mouse wheel over it to step the time an hour at a time (Ctrl+wheel:
+  15 minutes). Swap the direction to go from your time to theirs; pick a date for day
   changes. It is only a calculator and never changes the widget.
 - Per-monitor DPI aware, multi-monitor friendly, tiny (a single ~120 KB exe).
 

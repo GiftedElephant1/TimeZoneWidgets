@@ -53,7 +53,7 @@ namespace TimeZoneWidgets
             ShowInTaskbar = false;
             TopMost = true;
             KeyPreview = true;
-            ClientSize = new Size(640, 400);
+            ClientSize = new Size(560, 300);
             KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Escape) Close(); };
             // Esc also works through the form's cancel button mechanism, whatever control has focus.
             var esc = new Button();
@@ -64,54 +64,56 @@ namespace TimeZoneWidgets
             CancelButton = esc;
 
             _header = new Label();
-            _header.Font = new Font("Segoe UI", 11f, FontStyle.Bold);
+            _header.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             _header.AutoSize = true;
-            _header.Location = new Point(12, 10);
+            _header.Location = new Point(10, 8);
             Controls.Add(_header);
 
             _prompt = new Label();
             _prompt.AutoSize = true;
-            _prompt.Location = new Point(12, 44);
+            _prompt.Location = new Point(10, 38);
             Controls.Add(_prompt);
 
             _time = new TextBox();
-            _time.Font = new Font("Segoe UI", 12f);
-            _time.Location = new Point(150, 40);
-            _time.Width = 110;
+            _time.Font = new Font("Segoe UI", 11f);
+            _time.Location = new Point(118, 34);
+            _time.Width = 90;
             _time.TextChanged += delegate { Recompute(); };
             Controls.Add(_time);
 
             _date = new DateTimePicker();
             _date.Format = DateTimePickerFormat.Custom;
-            _date.CustomFormat = "ddd, MMM d yyyy";
-            _date.Location = new Point(268, 42);
-            _date.Width = 150;
+            _date.CustomFormat = "ddd, MMM d";
+            _date.Location = new Point(214, 36);
+            _date.Width = 118;
             _date.ValueChanged += delegate { Recompute(); };
             Controls.Add(_date);
 
             _now = new Button();
             _now.Text = "Now";
-            _now.Location = new Point(426, 40);
-            _now.Size = new Size(56, 28);
+            _now.Location = new Point(338, 34);
+            _now.Size = new Size(48, 26);
             _now.Click += delegate { SetToNow(); };
             Controls.Add(_now);
 
             _swap = new Button();
             _swap.Text = "⇄ Swap";
-            _swap.Location = new Point(490, 40);
-            _swap.Size = new Size(138, 28);
+            _swap.Location = new Point(392, 34);
+            _swap.Size = new Size(118, 26);
             _swap.Click += delegate { _fromLocal = !_fromLocal; SetToNow(); };
             Controls.Add(_swap);
 
             _result = new Label();
-            _result.Font = new Font("Segoe UI", 15f, FontStyle.Bold);
+            _result.Font = new Font("Segoe UI", 13f, FontStyle.Bold);
             _result.AutoSize = true;
-            _result.Location = new Point(12, 78);
+            _result.Location = new Point(10, 66);
             Controls.Add(_result);
 
             _grid = new DataGridView();
-            _grid.Location = new Point(12, 118);
-            _grid.Size = new Size(616, 250);
+            _grid.Location = new Point(10, 96);
+            _grid.Size = new Size(540, 172);
+            _grid.RowTemplate.Height = 19;
+            _grid.DefaultCellStyle.Font = new Font("Segoe UI", 8.5f);
             _grid.ReadOnly = true;
             _grid.AllowUserToAddRows = false;
             _grid.AllowUserToDeleteRows = false;
@@ -125,6 +127,7 @@ namespace TimeZoneWidgets
             _grid.BorderStyle = BorderStyle.FixedSingle;
             _grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             _grid.ScrollBars = ScrollBars.Both;
+            _grid.ShowCellToolTips = false;
             _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(225, 236, 255);
             _grid.DefaultCellStyle.SelectionForeColor = SystemColors.WindowText;
             _grid.CellDoubleClick += delegate(object s, DataGridViewCellEventArgs e) { if (e.RowIndex >= 0) PickRow(e.RowIndex); };
@@ -133,11 +136,40 @@ namespace TimeZoneWidgets
             _hint = new Label();
             _hint.AutoSize = true;
             _hint.ForeColor = SystemColors.GrayText;
-            _hint.Location = new Point(12, 374);
-            _hint.Text = "Type any time (9:30 pm, 21:30, 9pm). Double-click a row to use that time. Esc closes.";
+            _hint.Location = new Point(10, 276);
+            _hint.Font = new Font("Segoe UI", 8f);
+            _hint.Text = "Type a time · wheel ±1 h (Ctrl ±15 min) · double-click a row to use it · Esc closes";
             Controls.Add(_hint);
 
+            // The mouse wheel anywhere over the popup steps the time (the table re-centres).
+            MouseWheel += OnWheel;
+            foreach (Control c in Controls) c.MouseWheel += OnWheel;
+
             SetToNow();
+        }
+
+        void OnWheel(object sender, MouseEventArgs e)
+        {
+            var handled = e as HandledMouseEventArgs;
+            if (handled != null) handled.Handled = true;   // keep the grid/date picker from scrolling themselves
+            int steps = e.Delta / 120;
+            if (steps == 0) return;
+            int minutes = (ModifierKeys & Keys.Control) == Keys.Control ? 15 : 60;
+            ShiftBy(-steps * minutes);   // wheel up = earlier (the rows above), wheel down = later
+        }
+
+        /// <summary>Moves the typed time by a number of minutes (keeping the date in step).</summary>
+        void ShiftBy(int minutes)
+        {
+            TimeSpan tod;
+            DateTime src = TryParseTime(_time.Text, out tod) ? _date.Value.Date + tod
+                                                              : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Source);
+            src = src.AddMinutes(minutes);
+            _loading = true;
+            _time.Text = FormatTime(src);
+            _date.Value = src.Date;
+            _loading = false;
+            Recompute();
         }
 
         // ---- which way round ------------------------------------------------------------------
@@ -157,7 +189,7 @@ namespace TimeZoneWidgets
             _loading = false;
             _header.Text = "Time in " + SourceName + "  →  " + TargetName;
             _prompt.Text = "Time in " + (_fromLocal ? ZoneCatalog.LocalCity() : _zoneLabel) + ":";
-            _swap.Text = "⇄ " + (_fromLocal ? _zoneLabel : ZoneCatalog.LocalCity()) + " → " + (_fromLocal ? ZoneCatalog.LocalCity() : _zoneLabel);
+            _swap.Text = "⇄ " + (_fromLocal ? "Back to " + _zoneLabel : "From " + ZoneCatalog.LocalCity());
             Recompute();
             _time.SelectAll();
             _time.Focus();
@@ -248,16 +280,16 @@ namespace TimeZoneWidgets
                 var col = new DataGridViewTextBoxColumn();
                 col.HeaderText = names[i] + "\n" + ZoneCatalog.FormatOffset(zones[i].GetUtcOffset(centerUtc));
                 col.SortMode = DataGridViewColumnSortMode.NotSortable;
-                col.MinimumWidth = 72;
+                col.MinimumWidth = 66;
                 _grid.Columns.Add(col);
             }
             _grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8f, FontStyle.Bold);
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
             // Rows: the typed time and the hours around it.
-            for (int h = -4; h <= 4; h++)
+            for (int h = -3; h <= 3; h++)
             {
                 var utc = centerUtc.AddHours(h);
                 var cells = new object[zones.Count];
@@ -265,20 +297,18 @@ namespace TimeZoneWidgets
                 {
                     var t = TimeZoneInfo.ConvertTimeFromUtc(utc, zones[i]);
                     int dayDiff = (t.Date - sourceDate).Days;
-                    cells[i] = FormatTime(t) + (dayDiff > 0 ? " ⁺¹" : dayDiff < 0 ? " ⁻¹" : "");
+                    cells[i] = FormatTime(t) + (dayDiff > 0 ? "⁺¹" : dayDiff < 0 ? "⁻¹" : "");
                 }
                 int row = _grid.Rows.Add(cells);
                 _grid.Rows[row].Tag = utc;
                 if (h == 0)
                 {
-                    _grid.Rows[row].DefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                    _grid.Rows[row].DefaultCellStyle.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
                     _grid.Rows[row].DefaultCellStyle.BackColor = Color.FromArgb(236, 243, 255);
                 }
             }
             _grid.ClearSelection();
             _grid.ResumeLayout();
-            // Keep the typed row in view.
-            if (_grid.Rows.Count > 4) _grid.FirstDisplayedScrollingRowIndex = Math.Max(0, 4 - 2);
         }
 
         /// <summary>Double-clicking a row makes that row's time the new input.</summary>
