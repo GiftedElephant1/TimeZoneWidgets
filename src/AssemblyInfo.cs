@@ -6,6 +6,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("Time Zone Widgets")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyCopyright("MIT License")]
-[assembly: AssemblyVersion("1.10.0.0")]
-[assembly: AssemblyFileVersion("1.10.0.0")]
+[assembly: AssemblyVersion("1.10.1.0")]
+[assembly: AssemblyFileVersion("1.10.1.0")]
 [assembly: ComVisible(false)]

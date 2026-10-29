@@ -52,7 +52,7 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - Drag widgets anywhere, lock their positions, rename them, add or remove them from the tray
   icon, a widget's right-click menu or the Settings window. Double-click a widget to open Settings.
 - **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
-- **Stock-market countdown**: every zone shows its main exchange (NYSE, LSE, TSE, HKEX, TWSE…)
+- **Stock-market countdown**: every zone shows its main exchange as a short code (NYSE, LSE, ENX, TSE, HKEX, TWSE…)
   with a to-the-minute countdown to the next open, or to the close once trading has started,
   on a line of its own under the zone. The widget or ribbon cell turns **pale yellow** in the hour
   before the market opens, **green** while it is open, and **pale red** in the last hour before it closes. Regular hours and trading

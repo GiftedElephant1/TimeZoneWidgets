@@ -121,22 +121,22 @@ namespace TimeZoneWidgets
             Add("Venezuela", new Market("BVC", "Venezuela Standard Time", "MonFri", 930, 1300));
             // ---- Europe ----
             Add("United Kingdom", new Market("LSE", "GMT Standard Time", "MonFri", 800, 1630));
-            Add("Ireland", new Market("Euronext Dublin", "GMT Standard Time", "MonFri", 800, 1630));
-            Add("Portugal", new Market("Euronext Lisbon", "GMT Standard Time", "MonFri", 800, 1630));
-            Add("Iceland", new Market("Nasdaq Iceland", "Greenwich Standard Time", "MonFri", 930, 1530));
-            var euronext = Add("France", new Market("Euronext", "Romance Standard Time", "MonFri", 900, 1730));
+            Add("Ireland", new Market("ISE", "GMT Standard Time", "MonFri", 800, 1630));
+            Add("Portugal", new Market("ELI", "GMT Standard Time", "MonFri", 800, 1630));
+            Add("Iceland", new Market("ICEX", "Greenwich Standard Time", "MonFri", 930, 1530));
+            var euronext = Add("France", new Market("ENX", "Romance Standard Time", "MonFri", 900, 1730));
             ByCountry["Netherlands"] = euronext;
             ByCountry["Belgium"] = euronext;
             Add("Spain", new Market("BME", "Romance Standard Time", "MonFri", 900, 1730));
             Add("Germany", new Market("Xetra", "W. Europe Standard Time", "MonFri", 900, 1730));
-            Add("Italy", new Market("Borsa Italiana", "W. Europe Standard Time", "MonFri", 900, 1730));
+            Add("Italy", new Market("BIT", "W. Europe Standard Time", "MonFri", 900, 1730));
             Add("Switzerland", new Market("SIX", "W. Europe Standard Time", "MonFri", 900, 1730));
-            Add("Austria", new Market("Wiener Börse", "W. Europe Standard Time", "MonFri", 900, 1730));
+            Add("Austria", new Market("VSE", "W. Europe Standard Time", "MonFri", 900, 1730));
             Add("Luxembourg", new Market("LuxSE", "W. Europe Standard Time", "MonFri", 900, 1730));
-            Add("Sweden", new Market("Nasdaq Stockholm", "W. Europe Standard Time", "MonFri", 900, 1730));
-            Add("Norway", new Market("Oslo Børs", "W. Europe Standard Time", "MonFri", 900, 1620));
-            Add("Denmark", new Market("Nasdaq Copenhagen", "Romance Standard Time", "MonFri", 900, 1700));
-            Add("Finland", new Market("Nasdaq Helsinki", "FLE Standard Time", "MonFri", 1000, 1830));
+            Add("Sweden", new Market("OMXS", "W. Europe Standard Time", "MonFri", 900, 1730));
+            Add("Norway", new Market("OSE", "W. Europe Standard Time", "MonFri", 900, 1620));
+            Add("Denmark", new Market("OMXC", "Romance Standard Time", "MonFri", 900, 1700));
+            Add("Finland", new Market("OMXH", "FLE Standard Time", "MonFri", 1000, 1830));
             Add("Poland", new Market("GPW", "Central European Standard Time", "MonFri", 900, 1700));
             Add("Czechia", new Market("PSE", "Central Europe Standard Time", "MonFri", 900, 1620));
             Add("Hungary", new Market("BSE", "Central Europe Standard Time", "MonFri", 900, 1700));
@@ -144,7 +144,7 @@ namespace TimeZoneWidgets
             Add("Romania", new Market("BVB", "GTB Standard Time", "MonFri", 1000, 1800));
             Add("Türkiye", new Market("BIST", "Turkey Standard Time", "MonFri", 1000, 1800));
             Add("Russia", new Market("MOEX", "Russian Standard Time", "MonFri", 1000, 1840));
-            var baltic = Add("Latvia", new Market("Nasdaq Baltic", "FLE Standard Time", "MonFri", 1000, 1600));
+            var baltic = Add("Latvia", new Market("OMXB", "FLE Standard Time", "MonFri", 1000, 1600));
             ByCountry["Lithuania"] = baltic;
             ByCountry["Estonia"] = baltic;
             Add("Croatia", new Market("ZSE", "Central European Standard Time", "MonFri", 900, 1600));
@@ -157,7 +157,7 @@ namespace TimeZoneWidgets
             Add("Nigeria", new Market("NGX", "W. Central Africa Standard Time", "MonFri", 1000, 1420));
             Add("Kenya", new Market("NSE", "E. Africa Standard Time", "MonFri", 930, 1500));
             Add("Egypt", new Market("EGX", "Egypt Standard Time", "SunThu", 1000, 1430));
-            Add("Morocco", new Market("Casablanca SE", "Morocco Standard Time", "MonFri", 930, 1530));
+            Add("Morocco", new Market("CSE", "Morocco Standard Time", "MonFri", 930, 1530));
             Add("Tunisia", new Market("BVMT", "W. Central Africa Standard Time", "MonFri", 900, 1400));
             Add("Ghana", new Market("GSE", "Greenwich Standard Time", "MonFri", 930, 1500));
             Add("Mauritius", new Market("SEM", "Mauritius Standard Time", "MonFri", 900, 1330));
@@ -168,10 +168,10 @@ namespace TimeZoneWidgets
             Add("Rwanda", new Market("RSE", "South Africa Standard Time", "MonFri", 900, 1200));
             // ---- Middle East & Caucasus ----
             Add("Israel", new Market("TASE", "Israel Standard Time", "MonFri", 1000, 1715));
-            Add("Saudi Arabia", new Market("Tadawul", "Arab Standard Time", "SunThu", 1000, 1500));
-            Add("United Arab Emirates", new Market("DFM/ADX", "Arabian Standard Time", "MonFri", 1000, 1500));
+            Add("Saudi Arabia", new Market("TDWL", "Arab Standard Time", "SunThu", 1000, 1500));
+            Add("United Arab Emirates", new Market("DFM", "Arabian Standard Time", "MonFri", 1000, 1500));
             Add("Qatar", new Market("QSE", "Arab Standard Time", "SunThu", 930, 1300));
-            Add("Kuwait", new Market("Boursa Kuwait", "Arab Standard Time", "SunThu", 900, 1240));
+            Add("Kuwait", new Market("KSE", "Arab Standard Time", "SunThu", 900, 1240));
             Add("Bahrain", new Market("BHB", "Arab Standard Time", "SunThu", 930, 1300));
             Add("Oman", new Market("MSX", "Arabian Standard Time", "SunThu", 1000, 1300));
             Add("Jordan", new Market("ASE", "Jordan Standard Time", "SunThu", 1000, 1230));
@@ -199,7 +199,7 @@ namespace TimeZoneWidgets
             Add("Hong Kong", new Market("HKEX", "China Standard Time", "MonFri", 930, 1200, 1300, 1600));
             Add("Taiwan", new Market("TWSE", "Taipei Standard Time", "MonFri", 900, 1330));
             Add("Singapore", new Market("SGX", "Singapore Standard Time", "MonFri", 900, 1200, 1300, 1700));
-            Add("Malaysia", new Market("Bursa Malaysia", "Singapore Standard Time", "MonFri", 900, 1230, 1430, 1700));
+            Add("Malaysia", new Market("KLSE", "Singapore Standard Time", "MonFri", 900, 1230, 1430, 1700));
             Add("Thailand", new Market("SET", "SE Asia Standard Time", "MonFri", 1000, 1230, 1430, 1630));
             Add("Indonesia", new Market("IDX", "SE Asia Standard Time", "MonFri", 900, 1130, 1330, 1550));
             Add("Philippines", new Market("PSE", "Singapore Standard Time", "MonFri", 930, 1200, 1300, 1500));
@@ -217,6 +217,7 @@ namespace TimeZoneWidgets
             // City-level exceptions (where a city's exchange differs from its country's main one).
             ByCity["Shenzhen"] = new Market("SZSE", "China Standard Time", "MonFri", 930, 1130, 1300, 1500);
             ByCity["Chicago"] = new Market("NYSE", "Eastern Standard Time", "MonFri", 930, 1600);
+            ByCity["Abu Dhabi"] = new Market("ADX", "Arabian Standard Time", "MonFri", 1000, 1500);
         }
 
         /// <summary>The market for a catalog city, or null if none is listed.</summary>
