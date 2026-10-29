@@ -10,25 +10,25 @@ using System.Windows.Forms;
 namespace TimeZoneWidgets
 {
     /// <summary>
-    /// A small rotating globe that shows where it is day and night right now, the 24 one-hour
-    /// time-zone meridians, and a marker for every clock widget's city. Drag to spin it; it
-    /// resumes turning on its own a few seconds later. Shift+drag (or middle-drag) moves it.
+    /// A small globe that shows where it is day and night right now, the 24 one-hour time-zone
+    /// meridians, and a marker for every clock widget's city. It turns only as real time passes
+    /// (one rotation per day, so the sun stays put and the Earth moves under it) or when the
+    /// user drags it. Shift+drag (or middle-drag) moves it.
     /// </summary>
     public class GlobeForm : LayeredWindow
     {
         const double Deg = Math.PI / 180.0;
         const float BaseDiameter = 172f;   // design pixels at 100% scale
         const float Glow = 10f;            // soft halo outside the sphere, design pixels
-        const double AutoDegreesPerSecond = 3.0;
-        const int IdleSecondsBeforeAutoRotate = 4;
+        const int SecondsBetweenTimeFrames = 15;   // 15 s = 1/16 of a degree of real rotation
 
         readonly Timer _timer;
         double _centerLon;     // longitude at the center of the view, degrees
         double _centerLat = 18; // latitude at the center of the view (tilt), degrees
+        double _lonFromSun;    // view center relative to the sub-solar longitude (when following time)
+        bool _following;       // whether _lonFromSun is current
         bool _spinning;        // left-drag rotating the sphere
         Point _lastMouse;
-        DateTime _lastInteraction = DateTime.MinValue;
-        DateTime _lastFrame = DateTime.UtcNow;
         DateTime _lastStaticRender = DateTime.MinValue;
 
         int _d;                // sphere diameter in pixels
@@ -49,13 +49,13 @@ namespace TimeZoneWidgets
             Location = new Point(settings.GlobeX, settings.GlobeY);
             Size = new Size(200, 200);
             // Start centered on the local zone so the user's own region is in view.
-            _centerLon = TimeZoneInfo.Local.BaseUtcOffset.TotalHours * 15.0;
+            SetCenterLon(TimeZoneInfo.Local.BaseUtcOffset.TotalHours * 15.0);
 
             BuildMenu();
             ContextMenuStrip = _menu;
 
             _timer = new Timer();
-            _timer.Interval = 50;
+            _timer.Interval = 500;
             _timer.Tick += delegate { Frame(); };
 
             ApplySettings(settings, theme);
@@ -68,8 +68,29 @@ namespace TimeZoneWidgets
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            _lastFrame = DateTime.UtcNow;
             _timer.Start();
+        }
+
+        /// <summary>Longitude the sun is directly above right now, degrees (east positive).</summary>
+        static double SubSolarLon(DateTime utc)
+        {
+            return (12.0 - utc.TimeOfDay.TotalHours) * 15.0;
+        }
+
+        static double Wrap(double lon)
+        {
+            while (lon < -180) lon += 360;
+            while (lon > 180) lon -= 360;
+            return lon;
+        }
+
+        /// <summary>Points the view at a longitude and remembers it relative to the sun, so
+        /// "turn with the time" continues from there instead of jumping.</summary>
+        void SetCenterLon(double lon)
+        {
+            _centerLon = Wrap(lon);
+            _lonFromSun = _centerLon - SubSolarLon(DateTime.UtcNow);
+            _following = true;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -87,9 +108,8 @@ namespace TimeZoneWidgets
 
         public void ResetView()
         {
-            _centerLon = TimeZoneInfo.Local.BaseUtcOffset.TotalHours * 15.0;
+            SetCenterLon(TimeZoneInfo.Local.BaseUtcOffset.TotalHours * 15.0);
             _centerLat = 18;
-            _lastInteraction = DateTime.MinValue;
             Render(true);
         }
 
@@ -107,7 +127,6 @@ namespace TimeZoneWidgets
             {
                 _spinning = true;
                 _lastMouse = e.Location;
-                _lastInteraction = DateTime.UtcNow;
             }
         }
 
@@ -124,9 +143,8 @@ namespace TimeZoneWidgets
                 int dx = e.X - _lastMouse.X, dy = e.Y - _lastMouse.Y;
                 _lastMouse = e.Location;
                 double degPerPixel = 180.0 / Math.Max(40, _d);
-                _centerLon -= dx * degPerPixel;
+                SetCenterLon(_centerLon - dx * degPerPixel);
                 _centerLat = Math.Max(-75, Math.Min(75, _centerLat + dy * degPerPixel));
-                _lastInteraction = DateTime.UtcNow;
                 Render(true);
             }
         }
@@ -135,11 +153,7 @@ namespace TimeZoneWidgets
         {
             base.OnMouseUp(e);
             if (IsMoving) EndMove();
-            if (_spinning)
-            {
-                _spinning = false;
-                _lastInteraction = DateTime.UtcNow;
-            }
+            if (_spinning) _spinning = false;
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e)
@@ -157,7 +171,7 @@ namespace TimeZoneWidgets
             _menu = new ContextMenuStrip();
             _menu.Font = new Font("Segoe UI", 9.5f);
 
-            _autoItem = new ToolStripMenuItem("Rotate automatically");
+            _autoItem = new ToolStripMenuItem("Turn with the time of day");
             _autoItem.CheckOnClick = true;
             _autoItem.Click += delegate { App.Settings.GlobeAutoRotate = _autoItem.Checked; App.ApplyAll(); };
             _menu.Items.Add(_autoItem);
@@ -166,7 +180,7 @@ namespace TimeZoneWidgets
             reset.Click += delegate { ResetView(); };
             _menu.Items.Add(reset);
 
-            var hint = new ToolStripMenuItem("Drag to spin · Shift+drag to move");
+            var hint = new ToolStripMenuItem("Drag to turn · Shift+drag to move");
             hint.Enabled = false;
             _menu.Items.Add(hint);
             _menu.Items.Add(new ToolStripSeparator());
@@ -192,23 +206,23 @@ namespace TimeZoneWidgets
         void Frame()
         {
             var now = DateTime.UtcNow;
-            double dt = (now - _lastFrame).TotalSeconds;
-            _lastFrame = now;
-            if (!Visible || S == null) return;
+            if (!Visible || S == null || _spinning || IsMoving) return;
+            if ((now - _lastStaticRender).TotalSeconds < SecondsBetweenTimeFrames) return;
 
-            bool idle = (now - _lastInteraction).TotalSeconds >= IdleSecondsBeforeAutoRotate;
-            if (S.GlobeAutoRotate && idle && !_spinning && !IsMoving)
+            if (S.GlobeAutoRotate)
             {
-                _centerLon -= AutoDegreesPerSecond * Math.Min(dt, 0.5);
-                if (_centerLon < -180) _centerLon += 360;
-                if (_centerLon > 180) _centerLon -= 360;
-                Render(true);
+                // Keep the view fixed relative to the sun: the Earth turns under it at the real
+                // rate of 15° per hour, so the day/night line stays where it is on screen and
+                // the continents drift through it as the day goes on.
+                if (!_following) SetCenterLon(_centerLon);
+                _centerLon = Wrap(SubSolarLon(now) + _lonFromSun);
             }
-            else if ((now - _lastStaticRender).TotalSeconds >= 30)
+            else
             {
-                // Not spinning: still move the day/night line every half minute.
-                Render(true);
+                // View fixed on the chosen longitude; only the day/night line moves.
+                _following = false;
             }
+            Render(true);
         }
 
         // ---- layout & rendering ---------------------------------------------------------------

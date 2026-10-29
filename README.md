@@ -1,7 +1,7 @@
 # Time Zone Widgets
 
-Floating desktop clocks for any time zone on Windows, plus a small rotating globe that shows
-where it is day and night right now. Everything runs offline: the app uses the time-zone
+Floating desktop clocks for any time zone on Windows, plus a small globe that shows where it is
+day and night right now. Everything runs offline: the app uses the time-zone
 database built into Windows and never touches the network.
 
 ![Clock widgets and the globe](docs/screenshot.png)
@@ -18,10 +18,12 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - **12-hour or 24-hour (military) clock**, optional seconds.
 - **160+ time zones** – a curated list of ~60 popular cities grouped by region, plus every zone
   Windows knows about. Daylight-saving rules come from Windows, so they stay correct offline.
-- **Rotating globe widget** (can be turned off): a shaded Earth with the live day/night line,
+- **Day/night globe widget** (can be turned off): a shaded Earth with the live day/night line,
   the 24 one-hour time-zone meridians, a highlighted meridian for every clock widget and a
-  marker on each widget's city. It turns on its own; drag it to spin it yourself and it resumes
-  after a few seconds. Shift+drag (or middle-drag) moves it.
+  marker on each widget's city. It turns only as real time passes: one rotation per day, with
+  the sun fixed on screen so the continents drift through the day/night line as the hours go
+  by. Drag it to turn it yourself (the time-driven turning continues from there). Turn that off
+  and the view stays put while only the day/night line moves. Shift+drag (or middle-drag) moves it.
 - **Ribbon layout**: instead of separate widgets, show all zones in one bar docked to the top,
   bottom, left or right edge of the screen. Drag the bar toward another edge to move it there
   (like the taskbar), drag its inner edge or use the slider to set its height/width, and
@@ -60,9 +62,9 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Widget (drag) | Move it |
 | Widget (double-click) | Settings |
 | Widget (right-click) | Change time zone, rename, add/remove widget, lock positions, Settings, Exit |
-| Globe (drag) | Spin it |
+| Globe (drag) | Turn it |
 | Globe (Shift+drag or middle-drag) | Move it |
-| Globe (right-click) | Auto-rotate on/off, reset view, hide globe |
+| Globe (right-click) | Turn with the time of day on/off, reset view, hide globe |
 | Ribbon (drag) | Move it to the screen edge nearest the mouse |
 | Ribbon (drag its inner edge) | Change its height (top/bottom) or width (left/right) |
 | Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, reserve screen space, switch back to floating widgets |
@@ -131,7 +133,7 @@ src/            C# sources (WinForms, .NET Framework 4.8, no third-party package
   WidgetForm.cs       one clock widget
   RibbonForm.cs       the docked ribbon layout (all zones in one bar)
   AppBar.cs           reserves screen space for the ribbon (SHAppBarMessage)
-  GlobeForm.cs        the rotating day/night globe
+  GlobeForm.cs        the day/night globe
   GlobeData.cs        embedded continent outlines + land mask
   LayeredWindow.cs    per-pixel-alpha window base class (UpdateLayeredWindow)
   SettingsForm.cs     settings dialog

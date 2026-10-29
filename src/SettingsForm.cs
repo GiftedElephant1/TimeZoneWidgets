@@ -141,9 +141,9 @@ namespace TimeZoneWidgets
             AddRow(table, "", _lock);
 
             // Globe
-            _globe = Check("Show the rotating globe", delegate { _app.SetGlobeVisible(_globe.Checked); });
+            _globe = Check("Show the day/night globe", delegate { _app.SetGlobeVisible(_globe.Checked); });
             AddRow(table, "Globe", _globe);
-            _globeSpin = Check("Rotate automatically (drag the globe to spin it yourself)", delegate { S.GlobeAutoRotate = _globeSpin.Checked; Apply(); });
+            _globeSpin = Check("Turn with the time of day (drag the globe to turn it yourself)", delegate { S.GlobeAutoRotate = _globeSpin.Checked; Apply(); });
             AddRow(table, "", _globeSpin);
 
             // Startup

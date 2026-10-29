@@ -49,8 +49,10 @@ namespace TimeZoneWidgets
         [DataMember(Order = 10)] public string Layer { get; set; }
         [DataMember(Order = 11)] public bool LockPositions { get; set; }
         [DataMember(Order = 12)] public List<WidgetConfig> Widgets { get; set; }
-        /// <summary>Whether the rotating globe widget is shown.</summary>
+        /// <summary>Whether the day/night globe widget is shown.</summary>
         [DataMember(Order = 13)] public bool ShowGlobe { get; set; }
+        /// <summary>Whether the globe turns with real time (one rotation per day, sun fixed on screen).
+        /// Off: the view stays on the chosen longitude and only the day/night line moves.</summary>
         [DataMember(Order = 14)] public bool GlobeAutoRotate { get; set; }
         [DataMember(Order = 15)] public int GlobeX { get; set; }
         [DataMember(Order = 16)] public int GlobeY { get; set; }
