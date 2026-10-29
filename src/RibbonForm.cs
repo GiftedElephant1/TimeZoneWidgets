@@ -10,9 +10,12 @@ using System.Windows.Forms;
 namespace TimeZoneWidgets
 {
     /// <summary>
-    /// The "ribbon" layout: every time zone in one bar docked to an edge of the primary screen,
-    /// like a second taskbar. Drag the bar toward another edge to move it there; drag its inner
-    /// edge to change its height (top/bottom) or width (left/right).
+    /// The "ribbon" layout: every time zone in one bar docked to an edge of the primary screen.
+    /// Horizontal ribbons show each zone as a compact cell: city and day/date stacked on the left,
+    /// the time beside them on the right (a very thin ribbon collapses to a single line).
+    /// Vertical ribbons stack the three rows. Drag the bar toward another edge to move it there;
+    /// drag its inner edge to change its height (top/bottom) or width (left/right). By default it
+    /// overlays the screen; optionally it reserves space like the taskbar.
     /// </summary>
     public class RibbonForm : LayeredWindow
     {
@@ -68,6 +71,10 @@ namespace TimeZoneWidgets
         {
             _appBar = new AppBar(Handle);
             base.OnHandleCreated(e);
+            // Form.CreateHandle is still running at this point and clamps any size set now to the
+            // minimum for a captioned window (39 px). Apply the real bounds once creation is over
+            // so a thin single-line ribbon really is thin.
+            BeginInvoke((MethodInvoker)delegate { if (IsHandleCreated) { Relayout(); Render(true); } });
             _timer.Start();
         }
 
@@ -262,10 +269,18 @@ namespace TimeZoneWidgets
             }
             menu.Items.Add(position);
 
+            var overlay = new ToolStripMenuItem("Overlay the screen (don't reserve space)");
+            overlay.Checked = !S.RibbonReserveSpace;
+            overlay.Click += delegate { S.RibbonReserveSpace = false; App.ApplyAll(); };
+            menu.Items.Add(overlay);
             var reserve = new ToolStripMenuItem("Reserve screen space (like the taskbar)");
             reserve.Checked = S.RibbonReserveSpace;
-            reserve.Click += delegate { S.RibbonReserveSpace = !S.RibbonReserveSpace; App.ApplyAll(); };
+            reserve.Click += delegate { S.RibbonReserveSpace = true; App.ApplyAll(); };
             menu.Items.Add(reserve);
+            var codes = new ToolStripMenuItem("Show 3-letter city codes (NYC, TPE)");
+            codes.Checked = S.RibbonCityCodes;
+            codes.Click += delegate { S.RibbonCityCodes = !S.RibbonCityCodes; App.ApplyAll(); };
+            menu.Items.Add(codes);
 
             var floating = new ToolStripMenuItem("Switch to floating widgets");
             floating.Click += delegate { App.SetLayoutMode(AppSettings.LayoutFloating); };
@@ -300,8 +315,12 @@ namespace TimeZoneWidgets
         {
             DisposeFonts();
             float k = Px * fit;
-            _fLabel = new Font("Segoe UI", 9f * k, FontStyle.Bold, GraphicsUnit.Point);
-            _fTime = new Font("Segoe UI", (singleRow ? 13f : 19f) * k, FontStyle.Regular, GraphicsUnit.Point);
+            // Horizontal cells: the city is as prominent as the time (same size, semibold), with the
+            // day/date stacked in small text between them. Vertical ribbons keep the three-row clock.
+            float timePt = singleRow ? 13f : Horizontal ? 16.5f : 19f;
+            _fTime = new Font("Segoe UI", timePt * k, FontStyle.Regular, GraphicsUnit.Point);
+            _fLabel = Horizontal ? new Font("Segoe UI Semibold", timePt * k, FontStyle.Regular, GraphicsUnit.Point)
+                                 : new Font("Segoe UI", 9f * k, FontStyle.Bold, GraphicsUnit.Point);
             _fAmPm = new Font("Segoe UI", 8.5f * k, FontStyle.Bold, GraphicsUnit.Point);
             _fDay = new Font("Segoe UI", 8.5f * k, FontStyle.Bold, GraphicsUnit.Point);
             _fDate = new Font("Segoe UI", 8.5f * k, FontStyle.Regular, GraphicsUnit.Point);
@@ -328,7 +347,7 @@ namespace TimeZoneWidgets
             foreach (var c in _cells)
             {
                 var z = TimeZoneInfo.ConvertTimeFromUtc(utc, c.Tz);
-                c.Label = c.Config.Label;
+                c.Label = S.RibbonCityCodes ? ZoneCatalog.CodeFor(c.Config.TimeZoneId, c.Config.Label) : c.Config.Label;
                 if (S.Use24Hour) { c.Time = z.ToString(S.ShowSeconds ? "HH:mm:ss" : "HH:mm", inv); c.AmPm = ""; }
                 else { c.Time = z.ToString(S.ShowSeconds ? "h:mm:ss" : "h:mm", inv); c.AmPm = z.Hour < 12 ? "AM" : "PM"; }
                 c.Offset = S.ShowUtcOffset ? ZoneCatalog.FormatOffset(c.Tz.GetUtcOffset(utc)) : "";
@@ -377,7 +396,7 @@ namespace TimeZoneWidgets
 
             // Pick font sizes that fit the ribbon's thickness (and, horizontally, its length).
             float px = Px;
-            _singleRow = Horizontal && Height < 58 * px;
+            _singleRow = Horizontal && Height < 36 * px;
             CaptureCells();
             CreateFonts(1f, _singleRow);
             using (var bmp = new Bitmap(1, 1))
@@ -388,9 +407,11 @@ namespace TimeZoneWidgets
                 float fit;
                 if (Horizontal)
                 {
+                    // Scale the text to the ribbon's height: shrink to fit a thin bar, grow (up to
+                    // 1.8x) to fill a tall one.
                     float needH = _singleRow ? _fTime.GetHeight(g) + 6 * px
-                                             : _fLabel.GetHeight(g) + _fTime.GetHeight(g) + _fDate.GetHeight(g) + 10 * px;
-                    fit = Math.Min(1f, (Height - 2 * px) / needH);
+                                             : Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px) + 8 * px;
+                    fit = Math.Min(1.8f, (Height - 2 * px) / needH);
                     // Also shrink if the cells would overflow the screen width.
                     float total = 0;
                     foreach (var c in _cells) total += CellWidth(g, c, sf) + 12 * px;
@@ -416,6 +437,12 @@ namespace TimeZoneWidgets
             float row1 = W(g, c.Label, _fLabel, sf) + 8 * px + W(g, c.Glyph, _fGlyph, sf) + 3 * px + W(g, c.Offset, _fSmall, sf);
             float row2 = W(g, S.ShowSeconds ? "88:88:88" : "88:88", _fTime, sf) + (c.AmPm.Length > 0 || !S.Use24Hour ? 4 * px + W(g, "PM", _fAmPm, sf) : 0);
             float row3 = W(g, c.Day, _fDay, sf) + W(g, " · " + c.Date, _fDate, sf);
+            if (Horizontal)
+            {
+                // Compact cell: city (+ sun/moon and offset)  |  day over date  |  time.
+                float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
+                return row1 + 10 * px + stackW + 10 * px + row2;
+            }
             return Math.Max(row1, Math.Max(row2, row3));
         }
 
@@ -512,20 +539,29 @@ namespace TimeZoneWidgets
                         }
                         else
                         {
-                            float contentH = labelH + timeH + dateH + 2 * px;
-                            float y = (h - contentH) / 2;
-                            g.DrawString(c.Label, _fLabel, text, x, y, sf);
-                            float lx = x + W(g, c.Label, _fLabel, sf) + 8 * px;
-                            g.DrawString(c.Glyph, _fGlyph, mutedBrush, lx, y + (labelH - glyphH) / 2, sf);
-                            lx += W(g, c.Glyph, _fGlyph, sf) + 3 * px;
-                            g.DrawString(c.Offset, _fSmall, mutedBrush, lx, y + (labelH - smallH) / 2, sf);
-                            y += labelH + px;
-                            g.DrawString(c.Time, _fTime, accent, x - px, y, sf);
+                            // City (as big as the time, with sun/moon and UTC offset beside it),
+                            // then the day over the date in small text, then the time.
+                            float cx = x;
+                            float dayH = _fDay.GetHeight(g);
+                            g.DrawString(c.Label, _fLabel, text, cx, (h - labelH) / 2, sf);
+                            cx += W(g, c.Label, _fLabel, sf) + 8 * px;
+                            float midSmall = h / 2f;
+                            g.DrawString(c.Glyph, _fGlyph, mutedBrush, cx, midSmall - glyphH / 2, sf);
+                            cx += W(g, c.Glyph, _fGlyph, sf) + 3 * px;
+                            g.DrawString(c.Offset, _fSmall, mutedBrush, cx, midSmall - smallH / 2, sf);
+                            cx += W(g, c.Offset, _fSmall, sf) + 10 * px;
+
+                            float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
+                            float stackH = dayH + dateH + 2 * px;
+                            float sy = (h - stackH) / 2;
+                            g.DrawString(c.Day, _fDay, text, cx, sy, sf);
+                            g.DrawString(c.Date, _fDate, mutedBrush, cx, sy + dayH + 2 * px, sf);
+                            cx += stackW + 10 * px;
+
+                            float ty = (h - timeH) / 2;
+                            g.DrawString(c.Time, _fTime, accent, cx - px, ty, sf);
                             if (c.AmPm.Length > 0)
-                                g.DrawString(c.AmPm, _fAmPm, text, x + W(g, c.Time, _fTime, sf) + 4 * px, y + timeH - ampmH - 4 * px, sf);
-                            y += timeH + px;
-                            g.DrawString(c.Day, _fDay, text, x, y, sf);
-                            g.DrawString(" · " + c.Date, _fDate, mutedBrush, x + W(g, c.Day, _fDay, sf), y, sf);
+                                g.DrawString(c.AmPm, _fAmPm, text, cx + W(g, c.Time, _fTime, sf) + 4 * px, ty + timeH - ampmH - 4 * px, sf);
                         }
                         x += widths[i] + 2 * gap;
                     }
@@ -583,7 +619,7 @@ namespace TimeZoneWidgets
             }
             parent.DropDownItems.Add(new ToolStripSeparator());
             var local = new ToolStripMenuItem("Local time");
-            local.Click += delegate { onPick(TimeZoneInfo.Local.Id, "Local"); };
+            local.Click += delegate { onPick(TimeZoneInfo.Local.Id, ZoneCatalog.LocalCity()); };
             parent.DropDownItems.Add(local);
             var all = new ToolStripMenuItem("All time zones");
             all.DropDownItems.Add(new ToolStripMenuItem("Loading..."));

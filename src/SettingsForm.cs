@@ -21,7 +21,7 @@ namespace TimeZoneWidgets
         ComboBox _ribbonEdge;
         TrackBar _ribbonSize;
         Label _ribbonSizeLabel;
-        CheckBox _ribbonReserve;
+        CheckBox _ribbonReserve, _ribbonCodes;
 
         AppSettings S { get { return _app.Settings; } }
 
@@ -103,10 +103,12 @@ namespace TimeZoneWidgets
             _ribbonEdge = new ComboBox(); _ribbonEdge.DropDownStyle = ComboBoxStyle.DropDownList; _ribbonEdge.Width = 110;
             _ribbonEdge.Items.AddRange(new object[] { "Top", "Bottom", "Left", "Right" });
             _ribbonEdge.SelectedIndexChanged += delegate { if (!_loading) _app.SetRibbonEdge(EdgeFromIndex(_ribbonEdge.SelectedIndex)); };
-            _ribbonReserve = Check("Reserve screen space (like the taskbar)", delegate { S.RibbonReserveSpace = _ribbonReserve.Checked; Apply(); });
+            _ribbonReserve = Check("Overlay the screen (untick to reserve space like the taskbar)", delegate { S.RibbonReserveSpace = !_ribbonReserve.Checked; Apply(); });
             _ribbonReserve.Margin = new Padding(14, 6, 3, 3);
             ribbonRow.Controls.Add(edgeLabel); ribbonRow.Controls.Add(_ribbonEdge); ribbonRow.Controls.Add(_ribbonReserve);
             AddRow(table, "Ribbon", ribbonRow);
+            _ribbonCodes = Check("Show 3-letter city codes on the ribbon (NYC, TPE, AMS)", delegate { S.RibbonCityCodes = _ribbonCodes.Checked; Apply(); });
+            AddRow(table, "", _ribbonCodes);
 
             var ribbonSizeRow = Flow();
             _ribbonSize = Slider(AppSettings.MinRibbonHeight, AppSettings.MaxRibbonHeight, 20);
@@ -332,10 +334,12 @@ namespace TimeZoneWidgets
             _ribbonSize.TickFrequency = horizontal ? 20 : 30;
             _ribbonSize.Value = Math.Max(min, Math.Min(max, horizontal ? S.RibbonHeight : S.RibbonWidth));
             _ribbonSizeLabel.Text = (horizontal ? "Height " : "Width ") + _ribbonSize.Value + " px";
-            _ribbonReserve.Checked = S.RibbonReserveSpace;
+            _ribbonReserve.Checked = !S.RibbonReserveSpace;
+            _ribbonCodes.Checked = S.RibbonCityCodes;
             _ribbonEdge.Enabled = ribbon;
             _ribbonSize.Enabled = ribbon;
             _ribbonReserve.Enabled = ribbon;
+            _ribbonCodes.Enabled = ribbon;
             _loading = was;
         }
 
@@ -442,7 +446,7 @@ namespace TimeZoneWidgets
             }
             menu.Items.Add(new ToolStripSeparator());
             var local = new ToolStripMenuItem("Local time");
-            local.Click += delegate { _app.AddWidget(TimeZoneInfo.Local.Id, "Local"); };
+            local.Click += delegate { _app.AddWidget(TimeZoneInfo.Local.Id, ZoneCatalog.LocalCity()); };
             menu.Items.Add(local);
             var all = new ToolStripMenuItem("All time zones");
             foreach (var tz in ZoneCatalog.All)

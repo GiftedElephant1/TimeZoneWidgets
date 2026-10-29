@@ -29,7 +29,9 @@ namespace TimeZoneWidgets
         public const string EdgeBottom = "bottom";
         public const string EdgeLeft = "left";
         public const string EdgeRight = "right";
-        public const int MinRibbonHeight = 34, MaxRibbonHeight = 240;
+        public const int MinRibbonHeight = 26, MaxRibbonHeight = 240;
+        public const int DefaultRibbonHeight = 44;
+        public const int CurrentVersion = 3;
         public const int MinRibbonWidth = 120, MaxRibbonWidth = 420;
 
         [DataMember(Order = 0)] public int Version { get; set; }
@@ -62,8 +64,11 @@ namespace TimeZoneWidgets
         /// <summary>Ribbon height (top/bottom) and width (left/right), in design pixels at 100% scale.</summary>
         [DataMember(Order = 19)] public int RibbonHeight { get; set; }
         [DataMember(Order = 20)] public int RibbonWidth { get; set; }
-        /// <summary>Register the ribbon as an appbar so other windows don't cover it.</summary>
+        /// <summary>True: register the ribbon as an appbar that reserves screen space like the taskbar
+        /// (maximized windows shrink to sit beside it). False (default): overlay the screen.</summary>
         [DataMember(Order = 21)] public bool RibbonReserveSpace { get; set; }
+        /// <summary>Show three-letter city codes (NYC, TPE, AMS) on the ribbon instead of full names.</summary>
+        [DataMember(Order = 22)] public bool RibbonCityCodes { get; set; }
 
         public static string Directory
         {
@@ -78,7 +83,7 @@ namespace TimeZoneWidgets
         public static AppSettings CreateDefault()
         {
             var s = new AppSettings();
-            s.Version = 1;
+            s.Version = CurrentVersion;
             s.Use24Hour = false;
             s.ShowSeconds = false;
             s.ShowUtcOffset = true;
@@ -97,9 +102,10 @@ namespace TimeZoneWidgets
             s.GlobeY = -1;
             s.LayoutMode = LayoutFloating;
             s.RibbonEdge = EdgeTop;
-            s.RibbonHeight = 84;
+            s.RibbonHeight = DefaultRibbonHeight;
             s.RibbonWidth = 210;
-            s.RibbonReserveSpace = true;
+            s.RibbonReserveSpace = false;
+            s.RibbonCityCodes = true;
             return s;
         }
 
@@ -138,13 +144,27 @@ namespace TimeZoneWidgets
             if (Version <= 0)
             {
                 // Settings written before the globe existed: turn it on like a fresh install would.
-                Version = d.Version;
+                Version = 1;
                 ShowGlobe = true;
                 GlobeAutoRotate = true;
                 GlobeX = -1;
                 GlobeY = -1;
-                RibbonReserveSpace = true;
             }
+            if (Version < 2)
+            {
+                // v1.2: the horizontal ribbon became a thinner two-row strip that overlays the
+                // screen by default. Move an untouched old default height to the new one.
+                if (RibbonHeight == 84) RibbonHeight = d.RibbonHeight;
+                RibbonReserveSpace = false;
+                Version = 2;
+            }
+            if (Version < 3)
+            {
+                // v1.2: city codes on the ribbon (a missing JSON member deserializes as false).
+                RibbonCityCodes = true;
+                Version = 3;
+            }
+            if (Version < CurrentVersion) Version = CurrentVersion;
             if (Scale < 50 || Scale > 200) Scale = d.Scale;
             if (Opacity <= 0) Opacity = d.Opacity;
             if (Opacity < 20) Opacity = 20;
@@ -161,6 +181,9 @@ namespace TimeZoneWidgets
             RibbonHeight = Math.Max(MinRibbonHeight, Math.Min(MaxRibbonHeight, RibbonHeight));
             RibbonWidth = Math.Max(MinRibbonWidth, Math.Min(MaxRibbonWidth, RibbonWidth));
             Widgets.RemoveAll(delegate(WidgetConfig w) { return w == null || string.IsNullOrEmpty(w.TimeZoneId); });
+            // Older versions labelled the PC's own zone "Local"; show the city instead.
+            foreach (var w in Widgets)
+                if (w.Label == "Local" && w.TimeZoneId == TimeZoneInfo.Local.Id) w.Label = ZoneCatalog.LocalCity();
         }
 
         public void Save()

@@ -103,7 +103,7 @@ namespace TimeZoneWidgets
             {
                 var cfg = new WidgetConfig();
                 cfg.TimeZoneId = id;
-                cfg.Label = id == TimeZoneInfo.Local.Id ? "Local" : ZoneCatalog.LabelFor(id);
+                cfg.Label = id == TimeZoneInfo.Local.Id ? ZoneCatalog.LocalCity() : ZoneCatalog.LabelFor(id);
                 cfg.X = -1;
                 cfg.Y = -1;
                 Settings.Widgets.Add(cfg);
@@ -205,7 +205,7 @@ namespace TimeZoneWidgets
                     if (string.Equals(c.TimeZoneId, zone.WindowsId, StringComparison.OrdinalIgnoreCase)) { used = true; break; }
                 if (!used) { pick = zone; break; }
             }
-            if (pick == null) pick = new ZoneEntry("UTC", "UTC", 0, 0);
+            if (pick == null) pick = new ZoneEntry("UTC", "UTC", "UTC", 0, 0);
 
             var cfg = new WidgetConfig();
             cfg.TimeZoneId = pick.WindowsId;

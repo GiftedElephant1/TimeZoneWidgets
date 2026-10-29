@@ -142,7 +142,7 @@ namespace TimeZoneWidgets
             }
             change.DropDownItems.Add(new ToolStripSeparator());
             var local = new ToolStripMenuItem("Local time");
-            local.Click += delegate { SetTimeZone(TimeZoneInfo.Local.Id, "Local"); };
+            local.Click += delegate { SetTimeZone(TimeZoneInfo.Local.Id, ZoneCatalog.LocalCity()); };
             change.DropDownItems.Add(local);
             _allZonesItem = new ToolStripMenuItem("All time zones");
             _allZonesItem.DropDownItems.Add(new ToolStripMenuItem("Loading..."));
