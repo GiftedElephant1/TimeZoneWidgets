@@ -36,7 +36,7 @@ namespace TimeZoneWidgets
         string _lastKey;
         AppBar _appBar;
 
-        Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph;
+        Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny;
         float _fit = 1f;
         bool _singleRow;
 
@@ -399,8 +399,24 @@ namespace TimeZoneWidgets
 
         void DisposeFonts()
         {
-            foreach (var f in new[] { _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph }) if (f != null) f.Dispose();
-            _fLabel = _fTime = _fAmPm = _fDay = _fDate = _fSmall = _fGlyph = null;
+            foreach (var f in new[] { _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny }) if (f != null) f.Dispose();
+            _fLabel = _fTime = _fAmPm = _fDay = _fDate = _fSmall = _fGlyph = _fTiny = null;
+        }
+
+        /// <summary>Splits "UTC+8" / "UTC−7" / "UTC+5:30" / "UTC" into the "UTC" word and the difference.</summary>
+        static void SplitOffset(string offset, out string utc, out string diff)
+        {
+            if (string.IsNullOrEmpty(offset)) { utc = ""; diff = ""; return; }
+            utc = "UTC";
+            diff = offset.Length > 3 ? offset.Substring(3) : "±0";
+        }
+
+        /// <summary>Width of the small stacked column: sun/moon glyph over "UTC" over the difference.</summary>
+        float InfoColumnWidth(Graphics g, Cell c, StringFormat sf)
+        {
+            string utc, diff;
+            SplitOffset(c.Offset, out utc, out diff);
+            return Math.Max(W(g, c.Glyph, _fGlyph, sf), Math.Max(W(g, utc, _fTiny, sf), W(g, diff, _fTiny, sf)));
         }
 
         void CreateFonts(float fit, bool singleRow)
@@ -418,6 +434,7 @@ namespace TimeZoneWidgets
             _fDate = new Font("Segoe UI", 8.5f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fSmall = new Font("Segoe UI", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fGlyph = new Font("Segoe UI Symbol", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
+            _fTiny = new Font("Segoe UI", 6.5f * k, FontStyle.Regular, GraphicsUnit.Point);
         }
 
         static StringFormat Typographic()
@@ -503,8 +520,9 @@ namespace TimeZoneWidgets
                 {
                     // Scale the text to the ribbon's height: shrink to fit a thin bar, grow (up to
                     // 1.8x) to fill a tall one.
+                    float columnH = _fGlyph.GetHeight(g) + 2 * _fTiny.GetHeight(g) - 6 * px;   // tight leading
                     float needH = _singleRow ? _fTime.GetHeight(g) + 6 * px
-                                             : Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px) + 8 * px;
+                                             : Math.Max(columnH, Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px)) + 8 * px;
                     fit = Math.Min(1.8f, (Height - 2 * px) / needH);
                     // Also shrink if the cells would overflow the screen width.
                     float total = 0;
@@ -533,9 +551,9 @@ namespace TimeZoneWidgets
             float row3 = W(g, c.Day, _fDay, sf) + W(g, " · " + c.Date, _fDate, sf);
             if (Horizontal)
             {
-                // Compact cell: city (+ sun/moon and offset)  |  day over date  |  time.
+                // Compact cell: city | [glyph / UTC / ±n] column | day over date | time.
                 float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
-                return row1 + 10 * px + stackW + 10 * px + row2;
+                return W(g, c.Label, _fLabel, sf) + 7 * px + InfoColumnWidth(g, c, sf) + 10 * px + stackW + 10 * px + row2;
             }
             return Math.Max(row1, Math.Max(row2, row3));
         }
@@ -633,17 +651,28 @@ namespace TimeZoneWidgets
                         }
                         else
                         {
-                            // City (as big as the time, with sun/moon and UTC offset beside it),
-                            // then the day over the date in small text, then the time.
+                            // City (as big as the time), then a narrow column with the sun/moon
+                            // glyph over "UTC" over the difference, then the day over the date in
+                            // small text, then the time.
                             float cx = x;
                             float dayH = _fDay.GetHeight(g);
                             g.DrawString(c.Label, _fLabel, text, cx, (h - labelH) / 2, sf);
-                            cx += W(g, c.Label, _fLabel, sf) + 8 * px;
-                            float midSmall = h / 2f;
-                            g.DrawString(c.Glyph, _fGlyph, mutedBrush, cx, midSmall - glyphH / 2, sf);
-                            cx += W(g, c.Glyph, _fGlyph, sf) + 3 * px;
-                            g.DrawString(c.Offset, _fSmall, mutedBrush, cx, midSmall - smallH / 2, sf);
-                            cx += W(g, c.Offset, _fSmall, sf) + 10 * px;
+                            cx += W(g, c.Label, _fLabel, sf) + 7 * px;
+
+                            string utc, diff;
+                            SplitOffset(c.Offset, out utc, out diff);
+                            float tinyH = _fTiny.GetHeight(g);
+                            float colW = InfoColumnWidth(g, c, sf);
+                            float colH = utc.Length > 0 ? glyphH + 2 * tinyH - 6 * px : glyphH;
+                            float colY = (h - colH) / 2;
+                            float colMid = cx + colW / 2;
+                            g.DrawString(c.Glyph, _fGlyph, mutedBrush, colMid - W(g, c.Glyph, _fGlyph, sf) / 2, colY, sf);
+                            if (utc.Length > 0)
+                            {
+                                g.DrawString(utc, _fTiny, mutedBrush, colMid - W(g, utc, _fTiny, sf) / 2, colY + glyphH - 3 * px, sf);
+                                g.DrawString(diff, _fTiny, mutedBrush, colMid - W(g, diff, _fTiny, sf) / 2, colY + glyphH + tinyH - 6 * px, sf);
+                            }
+                            cx += colW + 10 * px;
 
                             float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
                             float stackH = dayH + dateH + 2 * px;
