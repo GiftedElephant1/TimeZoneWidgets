@@ -30,8 +30,8 @@ namespace TimeZoneWidgets
         public const string EdgeLeft = "left";
         public const string EdgeRight = "right";
         public const int MinRibbonHeight = 26, MaxRibbonHeight = 240;
-        public const int DefaultRibbonHeight = 44;
-        public const int CurrentVersion = 4;
+        public const int DefaultRibbonHeight = 64;
+        public const int CurrentVersion = 5;
         public const int MinRibbonWidth = 120, MaxRibbonWidth = 420;
 
         [DataMember(Order = 0)] public int Version { get; set; }
@@ -182,6 +182,12 @@ namespace TimeZoneWidgets
                 // v1.8: stock-market countdowns, on by default.
                 ShowMarkets = true;
                 Version = 4;
+            }
+            if (Version < 5)
+            {
+                // v1.8.1: the market countdown is a second line, so the default bar is taller.
+                if (RibbonHeight == 44) RibbonHeight = d.RibbonHeight;
+                Version = 5;
             }
             if (Version < CurrentVersion) Version = CurrentVersion;
             if (Scale < 50 || Scale > 200) Scale = d.Scale;

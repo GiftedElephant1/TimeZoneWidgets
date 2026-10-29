@@ -38,7 +38,8 @@ namespace TimeZoneWidgets
         string _lastKey;
         AppBar _appBar;
 
-        Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny;
+        Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny, _fMarket;
+        bool _marketRow;   // horizontal compact layout shows the stock market on a second line
         float _fit = 1f;
         bool _singleRow;
 
@@ -489,8 +490,8 @@ namespace TimeZoneWidgets
 
         void DisposeFonts()
         {
-            foreach (var f in new[] { _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny }) if (f != null) f.Dispose();
-            _fLabel = _fTime = _fAmPm = _fDay = _fDate = _fSmall = _fGlyph = _fTiny = null;
+            foreach (var f in new[] { _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny, _fMarket }) if (f != null) f.Dispose();
+            _fLabel = _fTime = _fAmPm = _fDay = _fDate = _fSmall = _fGlyph = _fTiny = _fMarket = null;
         }
 
         /// <summary>Splits "UTC+8" / "UTC−7" / "UTC+5:30" / "UTC" into the "UTC" word and the difference.</summary>
@@ -501,11 +502,14 @@ namespace TimeZoneWidgets
             diff = offset.Length > 3 ? offset.Substring(3) : "±0";
         }
 
-        /// <summary>Width of the stock-market column: exchange name over the countdown.</summary>
-        float MarketColumnWidth(Graphics g, Cell c, StringFormat sf)
+        bool AnyMarket()
         {
-            return Math.Max(W(g, c.Market, _fTiny, sf), W(g, c.MarketText, _fSmall, sf));
+            foreach (var c in _cells) if (c.Market.Length > 0) return true;
+            return false;
         }
+
+        /// <summary>The second line of a compact cell: "● NYSE · closes 4h 17m".</summary>
+        static string MarketLine(Cell c) { return (c.MarketOpen ? "● " : "○ ") + c.Market + " · " + c.MarketText; }
 
         /// <summary>Translucent green laid over a cell while its market is trading.</summary>
         static Color OpenTint(Theme t) { return Color.FromArgb(t.DarkPanel ? 75 : 60, 40, 175, 95); }
@@ -535,6 +539,7 @@ namespace TimeZoneWidgets
             _fSmall = new Font("Segoe UI", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fGlyph = new Font("Segoe UI Symbol", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fTiny = new Font("Segoe UI", 6.5f * k, FontStyle.Regular, GraphicsUnit.Point);
+            _fMarket = new Font("Segoe UI", 9f * k, FontStyle.Regular, GraphicsUnit.Point);
         }
 
         static StringFormat Typographic()
@@ -620,6 +625,7 @@ namespace TimeZoneWidgets
             float px = Px;
             _singleRow = Horizontal && Height < 36 * px;
             CaptureCells();
+            _marketRow = Horizontal && !_singleRow && S.ShowMarkets && AnyMarket();
             CreateFonts(1f, _singleRow);
             using (var bmp = new Bitmap(1, 1))
             using (var g = Graphics.FromImage(bmp))
@@ -633,7 +639,8 @@ namespace TimeZoneWidgets
                     // 1.8x) to fill a tall one.
                     float columnH = _fGlyph.GetHeight(g) + 2 * _fTiny.GetHeight(g) - 6 * px;   // tight leading
                     float needH = _singleRow ? _fTime.GetHeight(g) + 6 * px
-                                             : Math.Max(Math.Max(columnH, _fTiny.GetHeight(g) + _fSmall.GetHeight(g) - 2 * px), Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px)) + 8 * px;
+                                             : Math.Max(columnH, Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px))
+                                               + (_marketRow ? _fMarket.GetHeight(g) + 2 * px : 0) + 8 * px;
                     fit = Math.Min(1.8f, (Height - 2 * px) / needH);
                     // Also shrink if the cells would overflow the screen width.
                     float total = 0;
@@ -665,8 +672,9 @@ namespace TimeZoneWidgets
             {
                 // Compact cell: city | [glyph / UTC / ±n] column | day over date | time.
                 float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
-                return W(g, c.Label, _fLabel, sf) + 7 * px + InfoColumnWidth(g, c, sf) + 10 * px + stackW + 10 * px
-                     + (c.Market.Length > 0 ? MarketColumnWidth(g, c, sf) + 8 * px : 0) + row2;
+                float mainW = W(g, c.Label, _fLabel, sf) + 7 * px + InfoColumnWidth(g, c, sf) + 10 * px + stackW + 10 * px + row2;
+                float marketRowW = _marketRow && c.Market.Length > 0 ? W(g, MarketLine(c), _fMarket, sf) : 0;
+                return Math.Max(mainW, marketRowW);
             }
             float row4 = c.Market.Length > 0 ? W(g, "● " + c.Market + " · " + c.MarketText, _fSmall, sf) : 0;
             return Math.Max(Math.Max(row1, row4), Math.Max(row2, row3));
@@ -778,15 +786,21 @@ namespace TimeZoneWidgets
                             // small text, then the time.
                             float cx = x;
                             float dayH = _fDay.GetHeight(g);
-                            g.DrawString(c.Label, _fLabel, text, cx, (h - labelH) / 2, sf);
-                            cx += W(g, c.Label, _fLabel, sf) + 7 * px;
-
                             string utc, diff;
                             SplitOffset(c.Offset, out utc, out diff);
                             float tinyH = _fTiny.GetHeight(g);
                             float colW = InfoColumnWidth(g, c, sf);
                             float colH = utc.Length > 0 ? glyphH + 2 * tinyH - 6 * px : glyphH;
-                            float colY = (h - colH) / 2;
+                            float stackH = dayH + dateH + 2 * px;
+                            // Row 1 (city, column, date stack, time) centred as a block; row 2 is the market.
+                            float mainH = Math.Max(Math.Max(labelH, timeH), Math.Max(colH, stackH));
+                            float marketH = _marketRow ? _fMarket.GetHeight(g) + 2 * px : 0;
+                            float top = (h - (mainH + marketH)) / 2;
+                            float rowCy = top + mainH / 2;
+                            g.DrawString(c.Label, _fLabel, text, cx, rowCy - labelH / 2, sf);
+                            cx += W(g, c.Label, _fLabel, sf) + 7 * px;
+
+                            float colY = rowCy - colH / 2;
                             float colMid = cx + colW / 2;
                             g.DrawString(c.Glyph, _fGlyph, mutedBrush, colMid - W(g, c.Glyph, _fGlyph, sf) / 2, colY, sf);
                             if (utc.Length > 0)
@@ -797,26 +811,23 @@ namespace TimeZoneWidgets
                             cx += colW + 10 * px;
 
                             float stackW = Math.Max(W(g, c.Day, _fDay, sf), W(g, c.Date, _fDate, sf));
-                            float stackH = dayH + dateH + 2 * px;
-                            float sy = (h - stackH) / 2;
+                            float sy = rowCy - stackH / 2;
                             g.DrawString(c.Day, _fDay, text, cx, sy, sf);
                             g.DrawString(c.Date, _fDate, mutedBrush, cx, sy + dayH + 2 * px, sf);
                             cx += stackW + 10 * px;
-                            if (c.Market.Length > 0)
-                            {
-                                // Exchange name over the countdown; green while it trades.
-                                float mTinyH = _fTiny.GetHeight(g), mSmallH = _fSmall.GetHeight(g);
-                                float mH = mTinyH + mSmallH - 2 * px;
-                                float my = (h - mH) / 2;
-                                g.DrawString(c.Market, _fTiny, c.MarketOpen ? openText : mutedBrush, cx, my, sf);
-                                g.DrawString(c.MarketText, _fSmall, c.MarketOpen ? openText : text, cx, my + mTinyH - 2 * px, sf);
-                                cx += MarketColumnWidth(g, c, sf) + 8 * px;
-                            }
-
-                            float ty = (h - timeH) / 2;
+                            float ty = rowCy - timeH / 2;
                             g.DrawString(c.Time, _fTime, accent, cx - px, ty, sf);
                             if (c.AmPm.Length > 0)
                                 g.DrawString(c.AmPm, _fAmPm, text, cx + W(g, c.Time, _fTime, sf) + 4 * px, ty + timeH - ampmH - 4 * px, sf);
+                            if (_marketRow && c.Market.Length > 0)
+                            {
+                                // Row 2: "● NYSE · closes 4h 17m" – green while the market trades.
+                                float my = top + mainH + 2 * px;
+                                using (var dot = new SolidBrush(c.MarketOpen ? OpenTextColor(t) : muted))
+                                    g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, x, my, sf);
+                                float dotW = W(g, "● ", _fMarket, sf);
+                                g.DrawString(c.Market + " · " + c.MarketText, _fMarket, c.MarketOpen ? openText : text, x + dotW, my, sf);
+                            }
                         }
                         x += widths[i] + 2 * gap;
                     }

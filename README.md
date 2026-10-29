@@ -29,8 +29,8 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   by. Drag it to turn it yourself (the time-driven turning continues from there). Turn that off
   and the view stays put while only the day/night line moves. Shift+drag (or middle-drag) moves it.
 - **Ribbon layout**: instead of separate widgets, show all zones in one bar docked to the top,
-  bottom, left or right edge of the screen. A top or bottom ribbon is a thin strip (44 px by
-  default) with each zone as a compact cell: the city as a three-letter code (NYC, TPE, AMS;
+  bottom, left or right edge of the screen. A top or bottom ribbon is a thin strip (64 px by
+  default, 44 px without the market line) with each zone as a compact cell: the city as a three-letter code (NYC, TPE, AMS;
   switch to full names in Settings), the day over the date in small text, and the time. Make it
   thinner and it collapses to one line; make it taller and the text grows.
   Drag the bar toward another edge to move it there (like the taskbar), drag its inner edge or
@@ -54,7 +54,8 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
 - **Stock-market countdown**: every zone shows its main exchange (NYSE, LSE, TSE, HKEX, TWSE…)
   with a to-the-minute countdown to the next open, or to the close once trading has started,
-  and the widget or ribbon cell turns green while the market is open. Regular hours and trading
+  on a line of its own under the zone, and the widget or ribbon cell turns green while the
+  market is open. Regular hours and trading
   days (including Sunday–Thursday markets and lunch breaks) are built in for ~110 exchanges;
   public holidays are not. Switch it off in Settings if you don't need it.
 - **Convert a time**: double-click a widget or a ribbon zone, type a time in that zone (9:30 pm,
