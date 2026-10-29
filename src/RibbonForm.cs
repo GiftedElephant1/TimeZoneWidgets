@@ -539,7 +539,7 @@ namespace TimeZoneWidgets
             _fSmall = new Font("Segoe UI", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fGlyph = new Font("Segoe UI Symbol", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fTiny = new Font("Segoe UI", 6.5f * k, FontStyle.Regular, GraphicsUnit.Point);
-            _fMarket = new Font("Segoe UI", 9f * k, FontStyle.Regular, GraphicsUnit.Point);
+            _fMarket = new Font("Segoe UI", 10f * k, FontStyle.Regular, GraphicsUnit.Point);
         }
 
         static StringFormat Typographic()
@@ -823,10 +823,12 @@ namespace TimeZoneWidgets
                             {
                                 // Row 2: "● NYSE · closes 4h 17m" – green while the market trades.
                                 float my = top + mainH + 2 * px;
+                                float lineW = W(g, MarketLine(c), _fMarket, sf);
+                                float mx = x + (widths[i] - lineW) / 2;   // centred under the zone
                                 using (var dot = new SolidBrush(c.MarketOpen ? OpenTextColor(t) : muted))
-                                    g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, x, my, sf);
+                                    g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, mx, my, sf);
                                 float dotW = W(g, "● ", _fMarket, sf);
-                                g.DrawString(c.Market + " · " + c.MarketText, _fMarket, c.MarketOpen ? openText : text, x + dotW, my, sf);
+                                g.DrawString(c.Market + " · " + c.MarketText, _fMarket, c.MarketOpen ? openText : text, mx + dotW, my, sf);
                             }
                         }
                         x += widths[i] + 2 * gap;
