@@ -10,6 +10,12 @@ on:
 permissions:
   contents: write
 
+env:
+  # Optional: add the repository secrets CODESIGN_PFX_BASE64 (a base64-encoded PFX) and
+  # CODESIGN_PFX_PASSWORD to have CI sign the exe and publish tagged releases.
+  # Without them CI only checks that the project builds; releases are built and signed locally.
+  HAS_CERT: ${{ secrets.CODESIGN_PFX_BASE64 != '' }}
+
 jobs:
   build:
     runs-on: windows-latest
@@ -24,6 +30,18 @@ jobs:
         shell: pwsh
         run: dotnet build TimeZoneWidgets.csproj -c Release -o out-sdk
 
+      - name: Sign the exe
+        if: env.HAS_CERT == 'true'
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          TZW_SIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_BASE64))
+          ./build.ps1 -PfxPath $pfx
+          Remove-Item $pfx
+
       - name: Upload exe
         uses: actions/upload-artifact@v4
         with:
@@ -32,8 +50,8 @@ jobs:
             bin/TimeZoneWidgets.exe
             bin/TimeZoneWidgets.exe.config
 
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Release (only when CI could sign; otherwise releases are published from a signed local build)
+        if: startsWith(github.ref, 'refs/tags/v') && env.HAS_CERT == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: |
