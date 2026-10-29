@@ -69,6 +69,9 @@ namespace TimeZoneWidgets
         [DataMember(Order = 21)] public bool RibbonReserveSpace { get; set; }
         /// <summary>Show three-letter city codes (NYC, TPE, AMS) on the ribbon instead of full names.</summary>
         [DataMember(Order = 22)] public bool RibbonCityCodes { get; set; }
+        /// <summary>Slide the ribbon off-screen (leaving a thin line) and bring it back when the mouse
+        /// touches that screen edge, like the taskbar's auto-hide. Implies overlay and always-on-top.</summary>
+        [DataMember(Order = 23)] public bool RibbonAutoHide { get; set; }
 
         public static string Directory
         {
@@ -106,6 +109,7 @@ namespace TimeZoneWidgets
             s.RibbonWidth = 210;
             s.RibbonReserveSpace = false;
             s.RibbonCityCodes = true;
+            s.RibbonAutoHide = false;
             return s;
         }
 

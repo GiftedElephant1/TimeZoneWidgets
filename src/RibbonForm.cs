@@ -40,8 +40,15 @@ namespace TimeZoneWidgets
         float _fit = 1f;
         bool _singleRow;
 
-        bool _resizing, _edgeDrag;
+        bool _resizing, _edgeDrag, _menuOpen;
         Point _dragStart;
+
+        // Auto-hide: the bar's full ("shown") bounds, and how far it is currently slid off-screen.
+        readonly Timer _hoverTimer;
+        Rectangle _shown;
+        int _slide;
+        DateTime _lastSeen = DateTime.MinValue;
+        const int HideDelayMs = 700;
 
         public RibbonForm(TrayApp app, AppSettings settings, Theme theme)
             : base(app)
@@ -51,8 +58,18 @@ namespace TimeZoneWidgets
             _timer = new Timer();
             _timer.Interval = 1000;
             _timer.Tick += delegate { Tick(); };
+            _hoverTimer = new Timer();
+            _hoverTimer.Interval = 50;
+            _hoverTimer.Tick += delegate { HoverTick(); };
             ApplySettings(settings, theme);
         }
+
+        bool AutoHide { get { return S != null && S.RibbonAutoHide; } }
+
+        // An auto-hiding bar must be able to slide over other windows, so it is always on top and
+        // never pinned to the desktop while auto-hide is on.
+        protected override bool PinnedToBottom { get { return base.PinnedToBottom && !AutoHide; } }
+        protected override bool WantsTopMost(AppSettings settings) { return base.WantsTopMost(settings) || settings.RibbonAutoHide; }
 
         // The ribbon positions itself; it has no free-floating saved position.
         public override int SavedX { get { return 0; } set { } }
@@ -76,6 +93,7 @@ namespace TimeZoneWidgets
             // so a thin single-line ribbon really is thin.
             BeginInvoke((MethodInvoker)delegate { if (IsHandleCreated) { Relayout(); Render(true); } });
             _timer.Start();
+            _hoverTimer.Enabled = AutoHide;
         }
 
         protected override void OnHandleDestroyed(EventArgs e)
@@ -88,6 +106,8 @@ namespace TimeZoneWidgets
         {
             _timer.Stop();
             _timer.Dispose();
+            _hoverTimer.Stop();
+            _hoverTimer.Dispose();
             if (_appBar != null) { _appBar.Unregister(); _appBar = null; }
             DisposeFonts();
             base.OnFormClosed(e);
@@ -107,7 +127,73 @@ namespace TimeZoneWidgets
         public override void ApplySettings(AppSettings settings, Theme theme)
         {
             RebuildCells(settings);
+            if (!settings.RibbonAutoHide) _slide = 0;
             base.ApplySettings(settings, theme);
+            _hoverTimer.Enabled = settings.RibbonAutoHide && IsHandleCreated;
+        }
+
+        // ---- auto-hide --------------------------------------------------------------------------
+
+        /// <summary>The shown bounds shifted off-screen by <paramref name="slide"/> pixels toward the edge.</summary>
+        Rectangle Placed(Rectangle shown, int slide)
+        {
+            switch (Edge)
+            {
+                case AppSettings.EdgeTop: return new Rectangle(shown.X, shown.Y - slide, shown.Width, shown.Height);
+                case AppSettings.EdgeBottom: return new Rectangle(shown.X, shown.Y + slide, shown.Width, shown.Height);
+                case AppSettings.EdgeLeft: return new Rectangle(shown.X - slide, shown.Y, shown.Width, shown.Height);
+                default: return new Rectangle(shown.X + slide, shown.Y, shown.Width, shown.Height);
+            }
+        }
+
+        /// <summary>How far to slide when hidden: everything but a thin line (the accent edge).</summary>
+        int HiddenSlide
+        {
+            get
+            {
+                int sliver = Math.Max(2, (int)Math.Round(2 * Px));
+                return Math.Max(0, (Horizontal ? _shown.Height : _shown.Width) - sliver);
+            }
+        }
+
+        /// <summary>True when the mouse is pressed against the screen edge the ribbon lives on,
+        /// somewhere along the ribbon's length.</summary>
+        bool AtEdge(Point p)
+        {
+            var screen = Screen.PrimaryScreen.Bounds;
+            switch (Edge)
+            {
+                case AppSettings.EdgeTop: return p.Y <= screen.Top + 1 && p.X >= _shown.Left && p.X < _shown.Right;
+                case AppSettings.EdgeBottom: return p.Y >= screen.Bottom - 2 && p.X >= _shown.Left && p.X < _shown.Right;
+                case AppSettings.EdgeLeft: return p.X <= screen.Left + 1 && p.Y >= _shown.Top && p.Y < _shown.Bottom;
+                default: return p.X >= screen.Right - 2 && p.Y >= _shown.Top && p.Y < _shown.Bottom;
+            }
+        }
+
+        void HoverTick()
+        {
+            if (S == null || !IsHandleCreated || !Visible) return;
+            if (!AutoHide) { _hoverTimer.Stop(); if (_slide != 0) { _slide = 0; ApplySlide(); } return; }
+
+            var now = DateTime.UtcNow;
+            var p = Cursor.Position;
+            bool wanted = _menuOpen || _resizing || _edgeDrag || AtEdge(p) || Bounds.Contains(p);
+            if (wanted) _lastSeen = now;
+            int target = (wanted || (now - _lastSeen).TotalMilliseconds < HideDelayMs) ? 0 : HiddenSlide;
+            if (target == _slide) return;
+
+            // Slide a quarter of the remaining distance per tick (at least 3 px): quick but smooth.
+            int remaining = target - _slide;
+            int step = Math.Max(3, Math.Abs(remaining) / 4);
+            if (Math.Abs(remaining) <= step) _slide = target;
+            else _slide += remaining > 0 ? step : -step;
+            ApplySlide();
+        }
+
+        void ApplySlide()
+        {
+            var want = Placed(_shown, _slide);
+            if (Location != want.Location) Location = want.Location;
         }
 
         /// <summary>Call when zones were added, removed or changed.</summary>
@@ -281,6 +367,10 @@ namespace TimeZoneWidgets
             codes.Checked = S.RibbonCityCodes;
             codes.Click += delegate { S.RibbonCityCodes = !S.RibbonCityCodes; App.ApplyAll(); };
             menu.Items.Add(codes);
+            var autoHide = new ToolStripMenuItem("Auto-hide (touch the screen edge to show)");
+            autoHide.Checked = S.RibbonAutoHide;
+            autoHide.Click += delegate { S.RibbonAutoHide = !S.RibbonAutoHide; App.ApplyAll(); };
+            menu.Items.Add(autoHide);
 
             var floating = new ToolStripMenuItem("Switch to floating widgets");
             floating.Click += delegate { App.SetLayoutMode(AppSettings.LayoutFloating); };
@@ -300,6 +390,8 @@ namespace TimeZoneWidgets
             exit.Click += delegate { App.Exit(); };
             menu.Items.Add(exit);
 
+            _menuOpen = true;
+            menu.Closed += delegate { _menuOpen = false; _lastSeen = DateTime.UtcNow; };
             menu.Show(this, at);
         }
 
@@ -371,7 +463,7 @@ namespace TimeZoneWidgets
         {
             var screen = Screen.PrimaryScreen;
             int thickness = (int)Math.Round(ThicknessDesign * Px);
-            if (S.RibbonReserveSpace && _appBar != null)
+            if (S.RibbonReserveSpace && !S.RibbonAutoHide && _appBar != null)
             {
                 int abe = Edge == AppSettings.EdgeTop ? AppBar.ABE_TOP : Edge == AppSettings.EdgeBottom ? AppBar.ABE_BOTTOM
                         : Edge == AppSettings.EdgeLeft ? AppBar.ABE_LEFT : AppBar.ABE_RIGHT;
@@ -391,7 +483,9 @@ namespace TimeZoneWidgets
         protected override void Relayout()
         {
             if (S == null) return;
-            var target = TargetBounds();
+            _shown = TargetBounds();
+            if (_slide > HiddenSlide) _slide = HiddenSlide;
+            var target = Placed(_shown, _slide);
             if (Bounds != target) Bounds = target;
 
             // Pick font sizes that fit the ribbon's thickness (and, horizontally, its length).

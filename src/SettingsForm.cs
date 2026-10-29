@@ -21,7 +21,7 @@ namespace TimeZoneWidgets
         ComboBox _ribbonEdge;
         TrackBar _ribbonSize;
         Label _ribbonSizeLabel;
-        CheckBox _ribbonReserve, _ribbonCodes;
+        CheckBox _ribbonReserve, _ribbonCodes, _ribbonAutoHide;
 
         AppSettings S { get { return _app.Settings; } }
 
@@ -109,6 +109,8 @@ namespace TimeZoneWidgets
             AddRow(table, "Ribbon", ribbonRow);
             _ribbonCodes = Check("Show 3-letter city codes on the ribbon (NYC, TPE, AMS)", delegate { S.RibbonCityCodes = _ribbonCodes.Checked; Apply(); });
             AddRow(table, "", _ribbonCodes);
+            _ribbonAutoHide = Check("Auto-hide: slide off-screen, reappear when the mouse touches that edge", delegate { S.RibbonAutoHide = _ribbonAutoHide.Checked; Apply(); RefreshLayout(); });
+            AddRow(table, "", _ribbonAutoHide);
 
             var ribbonSizeRow = Flow();
             _ribbonSize = Slider(AppSettings.MinRibbonHeight, AppSettings.MaxRibbonHeight, 20);
@@ -336,10 +338,12 @@ namespace TimeZoneWidgets
             _ribbonSizeLabel.Text = (horizontal ? "Height " : "Width ") + _ribbonSize.Value + " px";
             _ribbonReserve.Checked = !S.RibbonReserveSpace;
             _ribbonCodes.Checked = S.RibbonCityCodes;
+            _ribbonAutoHide.Checked = S.RibbonAutoHide;
             _ribbonEdge.Enabled = ribbon;
             _ribbonSize.Enabled = ribbon;
-            _ribbonReserve.Enabled = ribbon;
+            _ribbonReserve.Enabled = ribbon && !S.RibbonAutoHide;
             _ribbonCodes.Enabled = ribbon;
+            _ribbonAutoHide.Enabled = ribbon;
             _loading = was;
         }
 

@@ -117,7 +117,7 @@ namespace TimeZoneWidgets
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_WINDOWPOSCHANGING && S != null && S.Layer == AppSettings.LayerBottom)
+            if (m.Msg == WM_WINDOWPOSCHANGING && PinnedToBottom)
             {
                 // Keep the widget glued to the bottom of the z-order (behind every other window).
                 var wp = (WINDOWPOS)Marshal.PtrToStructure(m.LParam, typeof(WINDOWPOS));
@@ -135,14 +135,20 @@ namespace TimeZoneWidgets
             base.WndProc(ref m);
         }
 
+        /// <summary>Glue the window to the bottom of the z-order ("pinned to desktop").</summary>
+        protected virtual bool PinnedToBottom { get { return S != null && S.Layer == AppSettings.LayerBottom; } }
+
+        /// <summary>Whether the window should be always-on-top for these settings.</summary>
+        protected virtual bool WantsTopMost(AppSettings settings) { return settings.Layer == AppSettings.LayerTop; }
+
         public virtual void ApplySettings(AppSettings settings, Theme theme)
         {
             S = settings;
             T = theme;
-            TopMost = settings.Layer == AppSettings.LayerTop;
+            TopMost = WantsTopMost(settings);
             if (IsHandleCreated)
             {
-                if (settings.Layer == AppSettings.LayerBottom) SendToBack();
+                if (PinnedToBottom) SendToBack();
                 Relayout();
                 Render(true);
             }

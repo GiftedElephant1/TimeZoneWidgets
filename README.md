@@ -33,7 +33,9 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   thinner and it collapses to one line; make it taller and the text grows.
   Drag the bar toward another edge to move it there (like the taskbar), drag its inner edge or
   use the slider to set its height/width. By default it overlays the screen; tick "Reserve
-  screen space" to have maximized windows sit next to it like they do with the taskbar.
+  screen space" to have maximized windows sit next to it like they do with the taskbar, or
+  **Auto-hide** to have it slide away (leaving a thin accent line) and pop back whenever the
+  mouse touches that edge of the screen, exactly like the taskbar's auto-hide.
   It uses the same colors, size and transparency as the widgets.
 - **Size, color and transparency** settings. Sizes from 50% to 200%, opacity from 20% to 100%.
 - **Matches your wallpaper by default**: the app looks at the current desktop background and
@@ -73,7 +75,8 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Globe (right-click) | Turn with the time of day on/off, reset view, hide globe |
 | Ribbon (drag) | Move it to the screen edge nearest the mouse |
 | Ribbon (drag its inner edge) | Change its height (top/bottom) or width (left/right) |
-| Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, overlay the screen or reserve space like the taskbar, switch back to floating widgets |
+| Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, overlay the screen or reserve space like the taskbar, auto-hide, city codes, switch back to floating widgets |
+| Ribbon (auto-hide on) | Touch the screen edge it lives on to bring it back; it hides again when the mouse leaves |
 | Run the exe again | Opens Settings in the running instance |
 
 ## Building from source
