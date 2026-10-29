@@ -36,7 +36,7 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   Drag the bar toward another edge to move it there (like the taskbar), drag its inner edge or
   use the slider to set its height/width. By default it overlays the screen; tick "Reserve
   screen space" to have maximized windows sit next to it like they do with the taskbar, or
-  **Auto-hide** to have it slide away (leaving a thin accent line) and pop back whenever the
+  **Auto-hide** to have it slide away completely and pop back whenever the
   mouse touches that edge of the screen, exactly like the taskbar's auto-hide.
   With several monitors, pick the one it docks to (or "All monitors" for a bar on each) in
   Settings or the ribbon menu, or simply drag the bar onto another monitor: it moves there and

@@ -42,6 +42,7 @@ namespace TimeZoneWidgets
         Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny, _fMarket;
         bool _marketRow;   // horizontal compact layout shows the stock market on a second line
         bool _nudgedShell; // see TargetBounds
+        Bitmap _frame;     // the last full rendering of the bar (auto-hide pushes a cropped part of it)
         float _fit = 1f;
         bool _singleRow;
 
@@ -131,6 +132,7 @@ namespace TimeZoneWidgets
             _hoverTimer.Stop();
             _hoverTimer.Dispose();
             if (_appBar != null) { _appBar.Unregister(); _appBar = null; }
+            if (_frame != null) { _frame.Dispose(); _frame = null; }
             DisposeFonts();
             base.OnFormClosed(e);
         }
@@ -168,14 +170,10 @@ namespace TimeZoneWidgets
             }
         }
 
-        /// <summary>How far to slide when hidden: everything but a thin line (the accent edge).</summary>
+        /// <summary>How far to slide when hidden: the whole bar, so nothing stays on screen.</summary>
         int HiddenSlide
         {
-            get
-            {
-                int sliver = Math.Max(2, (int)Math.Round(2 * Px));
-                return Math.Max(0, (Horizontal ? _shown.Height : _shown.Width) - sliver);
-            }
+            get { return Math.Max(0, Horizontal ? _shown.Height : _shown.Width); }
         }
 
         /// <summary>True when the mouse is pressed against the screen edge the ribbon lives on,
@@ -185,10 +183,10 @@ namespace TimeZoneWidgets
             var screen = TargetScreen.Bounds;
             switch (Edge)
             {
-                case AppSettings.EdgeTop: return p.Y <= screen.Top + 1 && p.X >= _shown.Left && p.X < _shown.Right;
-                case AppSettings.EdgeBottom: return p.Y >= screen.Bottom - 2 && p.X >= _shown.Left && p.X < _shown.Right;
-                case AppSettings.EdgeLeft: return p.X <= screen.Left + 1 && p.Y >= _shown.Top && p.Y < _shown.Bottom;
-                default: return p.X >= screen.Right - 2 && p.Y >= _shown.Top && p.Y < _shown.Bottom;
+                case AppSettings.EdgeTop: return p.Y >= screen.Top && p.Y <= screen.Top + 1 && p.X >= _shown.Left && p.X < _shown.Right;
+                case AppSettings.EdgeBottom: return p.Y >= screen.Bottom - 2 && p.Y < screen.Bottom && p.X >= _shown.Left && p.X < _shown.Right;
+                case AppSettings.EdgeLeft: return p.X >= screen.Left && p.X <= screen.Left + 1 && p.Y >= _shown.Top && p.Y < _shown.Bottom;
+                default: return p.X >= screen.Right - 2 && p.X < screen.Right && p.Y >= _shown.Top && p.Y < _shown.Bottom;
             }
         }
 
@@ -212,10 +210,40 @@ namespace TimeZoneWidgets
             ApplySlide();
         }
 
-        void ApplySlide()
+        void ApplySlide() { PushSlid(); }
+
+        /// <summary>Shows the part of the bar that is still on its monitor. The hidden part is cut off
+        /// rather than moved, so nothing spills onto a neighbouring monitor; a fully hidden bar is
+        /// parked far off-screen.</summary>
+        void PushSlid()
         {
-            var want = Placed(_shown, _slide);
-            if (Location != want.Location) Location = want.Location;
+            if (_frame == null || !IsHandleCreated) return;
+            int full = Horizontal ? _shown.Height : _shown.Width;
+            int slide = Math.Max(0, Math.Min(_slide, full));
+            if (slide >= full)
+            {
+                if (Left != -32000) Location = new Point(-32000, -32000);
+                return;
+            }
+            Rectangle crop, bounds;
+            switch (Edge)
+            {
+                case AppSettings.EdgeTop:
+                    crop = new Rectangle(0, slide, _shown.Width, _shown.Height - slide);
+                    bounds = new Rectangle(_shown.X, _shown.Y, _shown.Width, _shown.Height - slide); break;
+                case AppSettings.EdgeBottom:
+                    crop = new Rectangle(0, 0, _shown.Width, _shown.Height - slide);
+                    bounds = new Rectangle(_shown.X, _shown.Y + slide, _shown.Width, _shown.Height - slide); break;
+                case AppSettings.EdgeLeft:
+                    crop = new Rectangle(slide, 0, _shown.Width - slide, _shown.Height);
+                    bounds = new Rectangle(_shown.X, _shown.Y, _shown.Width - slide, _shown.Height); break;
+                default:
+                    crop = new Rectangle(0, 0, _shown.Width - slide, _shown.Height);
+                    bounds = new Rectangle(_shown.X + slide, _shown.Y, _shown.Width - slide, _shown.Height); break;
+            }
+            if (Bounds != bounds) Bounds = bounds;
+            if (slide == 0) { Push(_frame); return; }
+            using (var part = _frame.Clone(crop, _frame.PixelFormat)) Push(part);
         }
 
         /// <summary>Call when zones were added, removed or changed.</summary>
@@ -632,12 +660,11 @@ namespace TimeZoneWidgets
             if (S == null) return;
             _shown = TargetBounds();
             if (_slide > HiddenSlide) _slide = HiddenSlide;
-            var target = Placed(_shown, _slide);
-            if (Bounds != target) Bounds = target;
+            if (_slide == 0 && Bounds != _shown) Bounds = _shown;
 
             // Pick font sizes that fit the ribbon's thickness (and, horizontally, its length).
             float px = Px;
-            _singleRow = Horizontal && Height < 36 * px;
+            _singleRow = Horizontal && _shown.Height < 36 * px;
             CaptureCells();
             _marketRow = Horizontal && !_singleRow && S.ShowMarkets && AnyMarket();
             CreateFonts(1f, _singleRow);
@@ -655,7 +682,7 @@ namespace TimeZoneWidgets
                     float needH = _singleRow ? _fTime.GetHeight(g) + 6 * px
                                              : Math.Max(columnH, Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px))
                                                + (_marketRow ? _fMarket.GetHeight(g) + 2 * px : 0) + 8 * px;
-                    fit = Math.Min(1.8f, (Height - 2 * px) / needH);
+                    fit = Math.Min(1.8f, (_shown.Height - 2 * px) / needH);
                     // Shrink the top row until every cell fits the bar's length. The market line
                     // keeps its own size (see CreateFonts), so only clocks and dates get smaller.
                     for (int step = 0; step < 40; step++)
@@ -663,7 +690,7 @@ namespace TimeZoneWidgets
                         CreateFonts(Math.Max(0.4f, fit), _singleRow);
                         float total = 0;
                         foreach (var c in _cells) total += CellWidth(g, c, sf) + 12 * px;
-                        if (total <= Width - 20 * px || fit <= 0.4f) break;
+                        if (total <= _shown.Width - 20 * px || fit <= 0.4f) break;
                         fit -= 0.04f;
                     }
                 }
@@ -671,7 +698,7 @@ namespace TimeZoneWidgets
                 {
                     float widest = 1;
                     foreach (var c in _cells) widest = Math.Max(widest, CellWidth(g, c, sf));
-                    fit = Math.Min(1f, (Width - 24 * px) / widest);
+                    fit = Math.Min(1f, (_shown.Width - 24 * px) / widest);
                 }
                 _fit = Math.Max(0.4f, fit);
             }
@@ -717,16 +744,15 @@ namespace TimeZoneWidgets
             var key = Key();
             if (!force && key == _lastKey) return;
             _lastKey = key;
-            int w = Math.Max(1, Width), h = Math.Max(1, Height);
-            using (var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb))
+            int w = Math.Max(1, _shown.Width > 0 ? _shown.Width : Width), h = Math.Max(1, _shown.Height > 0 ? _shown.Height : Height);
+            if (_frame != null) _frame.Dispose();
+            _frame = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(_frame))
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    g.Clear(Color.Transparent);
-                    Draw(g, w, h);
-                }
-                Push(bmp);
+                g.Clear(Color.Transparent);
+                Draw(g, w, h);
             }
+            PushSlid();
         }
 
         void Draw(Graphics g, int w, int h)
