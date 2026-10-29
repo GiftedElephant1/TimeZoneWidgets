@@ -28,6 +28,7 @@ namespace TimeZoneWidgets
         Button _swap, _now;
         DataGridView _grid;
         bool _loading;
+        DateTime? _centerUtc;            // the typed time as a UTC instant (null while the text is invalid)
 
         /// <summary>Opens (or replaces) the popup for a zone, placed next to the given screen point.</summary>
         public static void ShowFor(TrayApp app, TimeZoneInfo zone, string label, Point nearScreenPoint)
@@ -138,7 +139,7 @@ namespace TimeZoneWidgets
             _hint.ForeColor = SystemColors.GrayText;
             _hint.Location = new Point(10, 276);
             _hint.Font = new Font("Segoe UI", 8f);
-            _hint.Text = "Type a time · wheel ±1 h (Ctrl ±15 min) · double-click a row to use it · Esc closes";
+            _hint.Text = "Type a time · wheel: next local hour (Ctrl: quarter hour) · double-click a row to use it · Esc closes";
             Controls.Add(_hint);
 
             // The mouse wheel anywhere over the popup steps the time (the table re-centres).
@@ -154,17 +155,27 @@ namespace TimeZoneWidgets
             if (handled != null) handled.Handled = true;   // keep the grid/date picker from scrolling themselves
             int steps = e.Delta / 120;
             if (steps == 0) return;
-            int minutes = (ModifierKeys & Keys.Control) == Keys.Control ? 15 : 60;
-            ShiftBy(-steps * minutes);   // wheel up = earlier (the rows above), wheel down = later
+            int grid = (ModifierKeys & Keys.Control) == Keys.Control ? 15 : 60;
+            // Wheel up = earlier (the rows above), wheel down = later; each notch lands on the
+            // next whole local hour (or quarter hour with Ctrl), never 11:34-style times.
+            for (int i = 0; i < Math.Abs(steps); i++) StepLocal(steps < 0 ? 1 : -1, grid);
         }
 
-        /// <summary>Moves the typed time by a number of minutes (keeping the date in step).</summary>
-        void ShiftBy(int minutes)
+        /// <summary>Moves the typed time to the next (+1) or previous (-1) local time that is a
+        /// multiple of <paramref name="gridMinutes"/> past the hour.</summary>
+        void StepLocal(int direction, int gridMinutes)
         {
-            TimeSpan tod;
-            DateTime src = TryParseTime(_time.Text, out tod) ? _date.Value.Date + tod
-                                                              : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Source);
-            src = src.AddMinutes(minutes);
+            var centerUtc = _centerUtc ?? DateTime.UtcNow;
+            var local = TimeZoneInfo.Local;
+            var l = TimeZoneInfo.ConvertTimeFromUtc(centerUtc, local);
+            var dayStart = l.Date;
+            double minutesIntoDay = (l - dayStart).TotalMinutes;
+            double into = minutesIntoDay % gridMinutes;
+            double target;
+            if (direction > 0) target = minutesIntoDay - into + gridMinutes;
+            else target = into > 0 ? minutesIntoDay - into : minutesIntoDay - gridMinutes;
+            var newUtc = centerUtc.AddMinutes(target - minutesIntoDay);
+            var src = TimeZoneInfo.ConvertTimeFromUtc(newUtc, Source);
             _loading = true;
             _time.Text = FormatTime(src);
             _date.Value = src.Date;
@@ -228,6 +239,7 @@ namespace TimeZoneWidgets
             {
                 _result.Text = "Enter a time such as 9:30 PM or 21:30";
                 _result.ForeColor = SystemColors.GrayText;
+                _centerUtc = null;
                 _grid.Rows.Clear();
                 return;
             }
@@ -242,6 +254,7 @@ namespace TimeZoneWidgets
                 _grid.Rows.Clear();
                 return;
             }
+            _centerUtc = srcUtc;
             var dst = TimeZoneInfo.ConvertTimeFromUtc(srcUtc, Target);
             _result.ForeColor = SystemColors.WindowText;
             _result.Text = "=  " + FormatTime(dst) + "  " + TargetName + DayNote(dst, src);
@@ -288,10 +301,20 @@ namespace TimeZoneWidgets
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             _grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
-            // Rows: the typed time and the hours around it.
-            for (int h = -3; h <= 3; h++)
+            // Rows: the typed time (highlighted, exact to the minute) with the whole local hours
+            // around it, so the neighbours always read :00 in your own time.
+            var local = TimeZoneInfo.Local;
+            var localCenter = TimeZoneInfo.ConvertTimeFromUtc(centerUtc, local);
+            var intoHour = localCenter - new DateTime(localCenter.Year, localCenter.Month, localCenter.Day, localCenter.Hour, 0, 0);
+            var floorUtc = centerUtc - intoHour;                 // the local :00 at or before the typed time
+            bool onTheHour = intoHour == TimeSpan.Zero;
+            var rows = new List<DateTime>();
+            if (onTheHour) { rows.Add(floorUtc.AddHours(-3)); rows.Add(floorUtc.AddHours(-2)); rows.Add(floorUtc.AddHours(-1)); }
+            else { rows.Add(floorUtc.AddHours(-2)); rows.Add(floorUtc.AddHours(-1)); rows.Add(floorUtc); }
+            rows.Add(centerUtc);
+            rows.Add(floorUtc.AddHours(1)); rows.Add(floorUtc.AddHours(2)); rows.Add(floorUtc.AddHours(3));
+            foreach (var utc in rows)
             {
-                var utc = centerUtc.AddHours(h);
                 var cells = new object[zones.Count];
                 for (int i = 0; i < zones.Count; i++)
                 {
@@ -301,9 +324,9 @@ namespace TimeZoneWidgets
                 }
                 int row = _grid.Rows.Add(cells);
                 _grid.Rows[row].Tag = utc;
-                if (h == 0)
+                if (utc == centerUtc)
                 {
-                    _grid.Rows[row].DefaultCellStyle.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+                    _grid.Rows[row].DefaultCellStyle.ForeColor = Color.FromArgb(16, 54, 140);
                     _grid.Rows[row].DefaultCellStyle.BackColor = Color.FromArgb(236, 243, 255);
                 }
             }
