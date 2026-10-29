@@ -364,7 +364,12 @@ namespace TimeZoneWidgets
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-            if (e.Button == MouseButtons.Left) { _edgeDrag = false; _resizing = false; _reorder = false; _pendingDrag = false; _dragCfg = null; App.ShowSettings(); }
+            if (e.Button != MouseButtons.Left) return;
+            _edgeDrag = false; _resizing = false; _reorder = false; _pendingDrag = false; _dragCfg = null;
+            // Double-click a zone: convert a time in that zone. Double-click empty bar: Settings.
+            var cell = CellAt(e.Location);
+            if (cell != null) ConvertForm.ShowFor(App, cell.Tz, cell.Config.Label, PointToScreen(new Point(cell.Bounds.Left + cell.Bounds.Width / 2, Edge == AppSettings.EdgeTop ? Height : 0)));
+            else App.ShowSettings();
         }
 
         Cell CellAt(Point p)

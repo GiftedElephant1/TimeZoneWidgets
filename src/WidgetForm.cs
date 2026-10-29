@@ -109,7 +109,8 @@ namespace TimeZoneWidgets
             if (e.Button == MouseButtons.Left)
             {
                 EndMove();
-                App.ShowSettings();
+                // Convert a time in this zone (Settings stays on the right-click menu and the tray icon).
+                ConvertForm.ShowFor(App, _tz, Config.Label, new Point(Left + Width / 2, Bottom));
             }
         }
 

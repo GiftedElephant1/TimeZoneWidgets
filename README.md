@@ -52,6 +52,10 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - Drag widgets anywhere, lock their positions, rename them, add or remove them from the tray
   icon, a widget's right-click menu or the Settings window. Double-click a widget to open Settings.
 - **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
+- **Convert a time**: double-click a widget or a ribbon zone, type a time in that zone (9:30 pm,
+  21:30, 9pm…) and see it in your local time, with a table of the surrounding hours converted to
+  every zone you have. Swap the direction to go from your time to theirs; pick a date for day
+  changes. It is only a calculator and never changes the widget.
 - Per-monitor DPI aware, multi-monitor friendly, tiny (a single ~120 KB exe).
 
 ## Download
@@ -74,7 +78,8 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Tray icon (right-click) | Add time zone, choose layout (floating / ribbon at an edge), show/hide the globe, hide/show widgets, start with Windows, Settings, Exit |
 | Tray icon (double-click) | Settings |
 | Widget (drag) | Move it |
-| Widget (double-click) | Settings |
+| Widget (double-click) | Convert a time: type a time in that zone and see it in yours, plus the surrounding hours in every zone |
+| Ribbon (double-click a zone) | Same conversion popup for that zone (double-click an empty part of the bar for Settings) |
 | Widget (right-click) | Change time zone, rename, add/remove widget, lock positions, Settings, Exit |
 | Globe (drag) | Turn it |
 | Globe (Shift+drag or middle-drag) | Move it |
@@ -158,6 +163,7 @@ src/            C# sources (WinForms, .NET Framework 4.8, no third-party package
   StartupManager.cs   HKCU Run key
   ZoneCatalog.cs      280 cities → Windows time zone IDs (+ codes, coordinates); generated from tools/cities.txt
   CityPickerForm.cs   the "Find a city" search dialog
+  ConvertForm.cs      the time-conversion popup
 assets/app.ico  generated icon
 build.ps1 / build.cmd   zero-install build (+ optional -Sign)
 tools/make-icon.ps1     icon generator

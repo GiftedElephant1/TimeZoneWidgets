@@ -180,8 +180,8 @@ namespace TimeZoneWidgets
             // Widgets
             var widgetsPanel = Flow();
             _widgetList = new ListBox();
-            _widgetList.Width = 240;
-            _widgetList.Height = 110;
+            _widgetList.Width = 380;
+            _widgetList.Height = 150;
             _widgetList.IntegralHeight = false;
             widgetsPanel.Controls.Add(_widgetList);
             var buttons = new FlowLayoutPanel();
@@ -209,7 +209,7 @@ namespace TimeZoneWidgets
             AddRow(table, "Widgets", widgetsPanel);
 
             var tip = new Label();
-            tip.Text = "Tips: drag a widget to move it. On the ribbon, drag a zone along the bar to reorder it, drag the bar toward another screen edge (or monitor) to move it there, or drag its inner edge to resize it. Double-click either to open these settings; right-click for menus.";
+            tip.Text = "Tips: drag a widget to move it. On the ribbon, drag a zone along the bar to reorder it, drag the bar toward another screen edge (or monitor) to move it there, or drag its inner edge to resize it. Double-click a widget or a ribbon zone to convert a time in that zone to yours; right-click for menus (Settings is in every menu and on the tray icon).";
             tip.MaximumSize = new Size(540, 0);
             tip.AutoSize = true;
             tip.ForeColor = SystemColors.GrayText;
