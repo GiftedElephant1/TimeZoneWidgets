@@ -265,7 +265,7 @@ namespace TimeZoneWidgets
                     if (string.Equals(c.TimeZoneId, zone.WindowsId, StringComparison.OrdinalIgnoreCase)) { used = true; break; }
                 if (!used) { pick = zone; break; }
             }
-            if (pick == null) pick = new ZoneEntry("UTC", "UTC", "UTC", 0, 0);
+            if (pick == null) pick = new ZoneEntry("UTC", "UTC", "", "UTC", 0, 0);
 
             var cfg = new WidgetConfig();
             cfg.TimeZoneId = pick.WindowsId;

@@ -774,6 +774,11 @@ namespace TimeZoneWidgets
 
         public static void Fill(ToolStripMenuItem parent, ZonePicked onPick)
         {
+            var find = new ToolStripMenuItem("Find a city...");
+            find.Font = new Font(find.Font, FontStyle.Bold);
+            find.Click += delegate { string id, label; if (CityPickerForm.Show(null, out id, out label)) onPick(id, label); };
+            parent.DropDownItems.Add(find);
+            parent.DropDownItems.Add(new ToolStripSeparator());
             foreach (var region in ZoneCatalog.Regions)
             {
                 var regionItem = new ToolStripMenuItem(region.Name);

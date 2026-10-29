@@ -127,6 +127,11 @@ namespace TimeZoneWidgets
             _menu.Font = new Font("Segoe UI", 9.5f);
 
             var change = new ToolStripMenuItem("Change time zone");
+            var find = new ToolStripMenuItem("Find a city...");
+            find.Font = new Font(find.Font, FontStyle.Bold);
+            find.Click += delegate { string id, label; if (CityPickerForm.Show(null, out id, out label)) SetTimeZone(id, label); };
+            change.DropDownItems.Add(find);
+            change.DropDownItems.Add(new ToolStripSeparator());
             foreach (var region in ZoneCatalog.Regions)
             {
                 var regionItem = new ToolStripMenuItem(region.Name);

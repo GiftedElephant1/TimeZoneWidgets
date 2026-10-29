@@ -1,0 +1,300 @@
+# Source table for src/ZoneCatalog.cs (regenerate with tools\gen-catalog.py).
+# Region | City | 3-letter code (IATA metropolitan/airport code) | Country | Windows time zone ID | Latitude | Longitude
+# Windows IDs are the names Windows itself uses (see "tzutil /l"); the app validates them at runtime.
+
+[North America]
+Honolulu|HNL|United States|Hawaiian Standard Time|21.31|-157.86
+Anchorage|ANC|United States|Alaskan Standard Time|61.22|-149.90
+Los Angeles|LAX|United States|Pacific Standard Time|34.05|-118.24
+San Francisco|SFO|United States|Pacific Standard Time|37.77|-122.42
+San Jose|SJC|United States|Pacific Standard Time|37.34|-121.89
+San Diego|SAN|United States|Pacific Standard Time|32.72|-117.16
+Seattle|SEA|United States|Pacific Standard Time|47.61|-122.33
+Portland|PDX|United States|Pacific Standard Time|45.52|-122.68
+Las Vegas|LAS|United States|Pacific Standard Time|36.17|-115.14
+Vancouver|YVR|Canada|Pacific Standard Time|49.28|-123.12
+Tijuana|TIJ|Mexico|Pacific Standard Time (Mexico)|32.51|-117.04
+Denver|DEN|United States|Mountain Standard Time|39.74|-104.99
+Salt Lake City|SLC|United States|Mountain Standard Time|40.76|-111.89
+Calgary|YYC|Canada|Mountain Standard Time|51.05|-114.07
+Edmonton|YEG|Canada|Mountain Standard Time|53.55|-113.49
+Phoenix|PHX|United States|US Mountain Standard Time|33.45|-112.07
+Chicago|CHI|United States|Central Standard Time|41.88|-87.63
+Houston|HOU|United States|Central Standard Time|29.76|-95.37
+Dallas|DFW|United States|Central Standard Time|32.78|-96.80
+Austin|AUS|United States|Central Standard Time|30.27|-97.74
+Minneapolis|MSP|United States|Central Standard Time|44.98|-93.27
+New Orleans|MSY|United States|Central Standard Time|29.95|-90.07
+Kansas City|MKC|United States|Central Standard Time|39.10|-94.58
+Winnipeg|YWG|Canada|Central Standard Time|49.90|-97.14
+Mexico City|MEX|Mexico|Central Standard Time (Mexico)|19.43|-99.13
+Guadalajara|GDL|Mexico|Central Standard Time (Mexico)|20.66|-103.35
+Monterrey|MTY|Mexico|Central Standard Time (Mexico)|25.69|-100.32
+Cancún|CUN|Mexico|Eastern Standard Time (Mexico)|21.16|-86.85
+New York|NYC|United States|Eastern Standard Time|40.71|-74.01
+Washington|WAS|United States|Eastern Standard Time|38.91|-77.04
+Boston|BOS|United States|Eastern Standard Time|42.36|-71.06
+Philadelphia|PHL|United States|Eastern Standard Time|39.95|-75.17
+Miami|MIA|United States|Eastern Standard Time|25.76|-80.19
+Atlanta|ATL|United States|Eastern Standard Time|33.75|-84.39
+Detroit|DTT|United States|Eastern Standard Time|42.33|-83.05
+Toronto|YTO|Canada|Eastern Standard Time|43.65|-79.38
+Montréal|YMQ|Canada|Eastern Standard Time|45.50|-73.57
+Ottawa|YOW|Canada|Eastern Standard Time|45.42|-75.70
+Havana|HAV|Cuba|Cuba Standard Time|23.11|-82.37
+Nassau|NAS|Bahamas|Eastern Standard Time|25.05|-77.34
+Kingston|KIN|Jamaica|SA Pacific Standard Time|18.00|-76.80
+Panama City|PTY|Panama|SA Pacific Standard Time|8.98|-79.52
+Guatemala City|GUA|Guatemala|Central America Standard Time|14.63|-90.51
+San Salvador|SAL|El Salvador|Central America Standard Time|13.69|-89.19
+Tegucigalpa|TGU|Honduras|Central America Standard Time|14.07|-87.19
+Managua|MGA|Nicaragua|Central America Standard Time|12.11|-86.24
+San José|SJO|Costa Rica|Central America Standard Time|9.93|-84.08
+Halifax|YHZ|Canada|Atlantic Standard Time|44.65|-63.57
+San Juan|SJU|Puerto Rico|SA Western Standard Time|18.47|-66.11
+Santo Domingo|SDQ|Dominican Republic|SA Western Standard Time|18.49|-69.93
+Port-au-Prince|PAP|Haiti|Haiti Standard Time|18.54|-72.34
+St. John's|YYT|Canada|Newfoundland Standard Time|47.56|-52.71
+Nuuk|GOH|Greenland|Greenland Standard Time|64.18|-51.72
+
+[South America]
+Bogotá|BOG|Colombia|SA Pacific Standard Time|4.71|-74.07
+Medellín|MDE|Colombia|SA Pacific Standard Time|6.25|-75.56
+Lima|LIM|Peru|SA Pacific Standard Time|-12.05|-77.04
+Quito|UIO|Ecuador|SA Pacific Standard Time|-0.18|-78.47
+Guayaquil|GYE|Ecuador|SA Pacific Standard Time|-2.19|-79.89
+Caracas|CCS|Venezuela|Venezuela Standard Time|10.48|-66.90
+La Paz|LPB|Bolivia|SA Western Standard Time|-16.50|-68.15
+Manaus|MAO|Brazil|SA Western Standard Time|-3.12|-60.02
+Santiago|SCL|Chile|Pacific SA Standard Time|-33.45|-70.67
+Asunción|ASU|Paraguay|Paraguay Standard Time|-25.26|-57.58
+São Paulo|SAO|Brazil|E. South America Standard Time|-23.55|-46.63
+Rio de Janeiro|RIO|Brazil|E. South America Standard Time|-22.91|-43.17
+Brasília|BSB|Brazil|E. South America Standard Time|-15.79|-47.88
+Belo Horizonte|BHZ|Brazil|E. South America Standard Time|-19.92|-43.94
+Salvador|SSA|Brazil|Bahia Standard Time|-12.97|-38.51
+Recife|REC|Brazil|SA Eastern Standard Time|-8.05|-34.90
+Buenos Aires|BUE|Argentina|Argentina Standard Time|-34.60|-58.38
+Córdoba|COR|Argentina|Argentina Standard Time|-31.42|-64.18
+Montevideo|MVD|Uruguay|Montevideo Standard Time|-34.90|-56.16
+
+[Western Europe]
+UTC|UTC|Coordinated Universal Time|UTC|0|0
+Reykjavík|REK|Iceland|Greenwich Standard Time|64.15|-21.94
+London|LON|United Kingdom|GMT Standard Time|51.51|-0.13
+Manchester|MAN|United Kingdom|GMT Standard Time|53.48|-2.24
+Edinburgh|EDI|United Kingdom|GMT Standard Time|55.95|-3.19
+Dublin|DUB|Ireland|GMT Standard Time|53.35|-6.26
+Lisbon|LIS|Portugal|GMT Standard Time|38.72|-9.14
+Porto|OPO|Portugal|GMT Standard Time|41.15|-8.61
+Paris|PAR|France|Romance Standard Time|48.86|2.35
+Lyon|LYS|France|Romance Standard Time|45.76|4.84
+Marseille|MRS|France|Romance Standard Time|43.30|5.37
+Madrid|MAD|Spain|Romance Standard Time|40.42|-3.70
+Barcelona|BCN|Spain|Romance Standard Time|41.39|2.17
+Brussels|BRU|Belgium|Romance Standard Time|50.85|4.35
+Copenhagen|CPH|Denmark|Romance Standard Time|55.68|12.57
+Amsterdam|AMS|Netherlands|W. Europe Standard Time|52.37|4.90
+Rotterdam|RTM|Netherlands|W. Europe Standard Time|51.92|4.48
+Luxembourg|LUX|Luxembourg|W. Europe Standard Time|49.61|6.13
+Berlin|BER|Germany|W. Europe Standard Time|52.52|13.41
+Munich|MUC|Germany|W. Europe Standard Time|48.14|11.58
+Frankfurt|FRA|Germany|W. Europe Standard Time|50.11|8.68
+Hamburg|HAM|Germany|W. Europe Standard Time|53.55|9.99
+Cologne|CGN|Germany|W. Europe Standard Time|50.94|6.96
+Düsseldorf|DUS|Germany|W. Europe Standard Time|51.23|6.78
+Stuttgart|STR|Germany|W. Europe Standard Time|48.78|9.18
+Vienna|VIE|Austria|W. Europe Standard Time|48.21|16.37
+Zürich|ZRH|Switzerland|W. Europe Standard Time|47.38|8.54
+Geneva|GVA|Switzerland|W. Europe Standard Time|46.20|6.14
+Rome|ROM|Italy|W. Europe Standard Time|41.90|12.50
+Milan|MIL|Italy|W. Europe Standard Time|45.46|9.19
+Naples|NAP|Italy|W. Europe Standard Time|40.85|14.27
+Turin|TRN|Italy|W. Europe Standard Time|45.07|7.69
+Stockholm|STO|Sweden|W. Europe Standard Time|59.33|18.07
+Gothenburg|GOT|Sweden|W. Europe Standard Time|57.71|11.97
+Oslo|OSL|Norway|W. Europe Standard Time|59.91|10.75
+Malta|MLA|Malta|W. Europe Standard Time|35.90|14.51
+
+[Eastern Europe & Russia]
+Prague|PRG|Czechia|Central Europe Standard Time|50.08|14.44
+Budapest|BUD|Hungary|Central Europe Standard Time|47.50|19.04
+Belgrade|BEG|Serbia|Central Europe Standard Time|44.79|20.47
+Bratislava|BTS|Slovakia|Central Europe Standard Time|48.15|17.11
+Ljubljana|LJU|Slovenia|Central Europe Standard Time|46.06|14.51
+Tirana|TIA|Albania|Central Europe Standard Time|41.33|19.82
+Warsaw|WAW|Poland|Central European Standard Time|52.23|21.01
+Kraków|KRK|Poland|Central European Standard Time|50.06|19.94
+Zagreb|ZAG|Croatia|Central European Standard Time|45.81|15.98
+Sarajevo|SJJ|Bosnia and Herzegovina|Central European Standard Time|43.86|18.41
+Skopje|SKP|North Macedonia|Central European Standard Time|41.99|21.43
+Helsinki|HEL|Finland|FLE Standard Time|60.17|24.94
+Kyiv|IEV|Ukraine|FLE Standard Time|50.45|30.52
+Riga|RIX|Latvia|FLE Standard Time|56.95|24.11
+Vilnius|VNO|Lithuania|FLE Standard Time|54.69|25.28
+Tallinn|TLL|Estonia|FLE Standard Time|59.44|24.75
+Sofia|SOF|Bulgaria|FLE Standard Time|42.70|23.32
+Bucharest|BUH|Romania|GTB Standard Time|44.43|26.10
+Athens|ATH|Greece|GTB Standard Time|37.98|23.73
+Thessaloniki|SKG|Greece|GTB Standard Time|40.64|22.94
+Nicosia|NIC|Cyprus|GTB Standard Time|35.17|33.37
+Chișinău|KIV|Moldova|E. Europe Standard Time|47.01|28.86
+Istanbul|IST|Türkiye|Turkey Standard Time|41.01|28.98
+Ankara|ESB|Türkiye|Turkey Standard Time|39.93|32.86
+Minsk|MSQ|Belarus|Belarus Standard Time|53.90|27.57
+Moscow|MOW|Russia|Russian Standard Time|55.76|37.62
+St. Petersburg|LED|Russia|Russian Standard Time|59.93|30.32
+Kaliningrad|KGD|Russia|Kaliningrad Standard Time|54.71|20.51
+Samara|KUF|Russia|Russia Time Zone 3|53.20|50.15
+Yekaterinburg|SVX|Russia|Ekaterinburg Standard Time|56.84|60.60
+Omsk|OMS|Russia|Omsk Standard Time|54.99|73.37
+Novosibirsk|OVB|Russia|N. Central Asia Standard Time|55.03|82.92
+Krasnoyarsk|KJA|Russia|North Asia Standard Time|56.01|92.87
+Irkutsk|IKT|Russia|North Asia East Standard Time|52.29|104.28
+Yakutsk|YKS|Russia|Yakutsk Standard Time|62.04|129.73
+Vladivostok|VVO|Russia|Vladivostok Standard Time|43.12|131.89
+Magadan|GDX|Russia|Magadan Standard Time|59.56|150.80
+Kamchatka|PKC|Russia|Russia Time Zone 11|53.02|158.65
+
+[Africa]
+Casablanca|CAS|Morocco|Morocco Standard Time|33.57|-7.59
+Dakar|DKR|Senegal|Greenwich Standard Time|14.69|-17.44
+Accra|ACC|Ghana|Greenwich Standard Time|5.60|-0.19
+Abidjan|ABJ|Côte d'Ivoire|Greenwich Standard Time|5.36|-4.01
+Lagos|LOS|Nigeria|W. Central Africa Standard Time|6.52|3.38
+Abuja|ABV|Nigeria|W. Central Africa Standard Time|9.06|7.49
+Algiers|ALG|Algeria|W. Central Africa Standard Time|36.75|3.06
+Tunis|TUN|Tunisia|W. Central Africa Standard Time|36.80|10.18
+Kinshasa|FIH|DR Congo|W. Central Africa Standard Time|-4.44|15.27
+Luanda|LAD|Angola|W. Central Africa Standard Time|-8.84|13.23
+Douala|DLA|Cameroon|W. Central Africa Standard Time|4.05|9.70
+Cairo|CAI|Egypt|Egypt Standard Time|30.04|31.24
+Tripoli|TIP|Libya|Libya Standard Time|32.89|13.19
+Khartoum|KRT|Sudan|Sudan Standard Time|15.50|32.56
+Johannesburg|JNB|South Africa|South Africa Standard Time|-26.20|28.05
+Cape Town|CPT|South Africa|South Africa Standard Time|-33.93|18.42
+Durban|DUR|South Africa|South Africa Standard Time|-29.86|31.02
+Harare|HRE|Zimbabwe|South Africa Standard Time|-17.83|31.05
+Lusaka|LUN|Zambia|South Africa Standard Time|-15.39|28.32
+Maputo|MPM|Mozambique|South Africa Standard Time|-25.97|32.57
+Gaborone|GBE|Botswana|South Africa Standard Time|-24.65|25.91
+Kigali|KGL|Rwanda|South Africa Standard Time|-1.94|30.06
+Windhoek|WDH|Namibia|Namibia Standard Time|-22.56|17.08
+Nairobi|NBO|Kenya|E. Africa Standard Time|-1.29|36.82
+Addis Ababa|ADD|Ethiopia|E. Africa Standard Time|9.03|38.74
+Dar es Salaam|DAR|Tanzania|E. Africa Standard Time|-6.79|39.28
+Kampala|KLA|Uganda|E. Africa Standard Time|0.35|32.58
+Mogadishu|MGQ|Somalia|E. Africa Standard Time|2.05|45.32
+Antananarivo|TNR|Madagascar|E. Africa Standard Time|-18.88|47.51
+Port Louis|MRU|Mauritius|Mauritius Standard Time|-20.16|57.50
+
+[Middle East & Caucasus]
+Jerusalem|JRS|Israel|Israel Standard Time|31.77|35.21
+Tel Aviv|TLV|Israel|Israel Standard Time|32.07|34.78
+Amman|AMM|Jordan|Jordan Standard Time|31.95|35.93
+Beirut|BEY|Lebanon|Middle East Standard Time|33.89|35.50
+Damascus|DAM|Syria|Syria Standard Time|33.51|36.29
+Baghdad|BGW|Iraq|Arabic Standard Time|33.34|44.40
+Riyadh|RUH|Saudi Arabia|Arab Standard Time|24.71|46.68
+Jeddah|JED|Saudi Arabia|Arab Standard Time|21.49|39.19
+Kuwait City|KWI|Kuwait|Arab Standard Time|29.38|47.99
+Doha|DOH|Qatar|Arab Standard Time|25.29|51.53
+Manama|BAH|Bahrain|Arab Standard Time|26.23|50.59
+Sana'a|SAH|Yemen|Arab Standard Time|15.37|44.19
+Dubai|DXB|United Arab Emirates|Arabian Standard Time|25.20|55.27
+Abu Dhabi|AUH|United Arab Emirates|Arabian Standard Time|24.45|54.65
+Muscat|MCT|Oman|Arabian Standard Time|23.59|58.41
+Tehran|THR|Iran|Iran Standard Time|35.69|51.39
+Baku|BAK|Azerbaijan|Azerbaijan Standard Time|40.41|49.87
+Tbilisi|TBS|Georgia|Georgian Standard Time|41.72|44.79
+Yerevan|EVN|Armenia|Caucasus Standard Time|40.18|44.51
+
+[South & Central Asia]
+Kabul|KBL|Afghanistan|Afghanistan Standard Time|34.53|69.17
+Karachi|KHI|Pakistan|Pakistan Standard Time|24.86|67.00
+Lahore|LHE|Pakistan|Pakistan Standard Time|31.55|74.34
+Islamabad|ISB|Pakistan|Pakistan Standard Time|33.69|73.04
+Tashkent|TAS|Uzbekistan|West Asia Standard Time|41.30|69.24
+Ashgabat|ASB|Turkmenistan|West Asia Standard Time|37.96|58.33
+Dushanbe|DYU|Tajikistan|West Asia Standard Time|38.56|68.79
+Malé|MLE|Maldives|West Asia Standard Time|4.18|73.51
+Astana|NQZ|Kazakhstan|Central Asia Standard Time|51.17|71.43
+Almaty|ALA|Kazakhstan|Central Asia Standard Time|43.24|76.95
+Bishkek|FRU|Kyrgyzstan|Central Asia Standard Time|42.87|74.59
+Mumbai|BOM|India|India Standard Time|19.08|72.88
+New Delhi|DEL|India|India Standard Time|28.61|77.21
+Bengaluru|BLR|India|India Standard Time|12.97|77.59
+Chennai|MAA|India|India Standard Time|13.08|80.27
+Kolkata|CCU|India|India Standard Time|22.57|88.36
+Hyderabad|HYD|India|India Standard Time|17.39|78.49
+Pune|PNQ|India|India Standard Time|18.52|73.86
+Ahmedabad|AMD|India|India Standard Time|23.02|72.57
+Colombo|CMB|Sri Lanka|Sri Lanka Standard Time|6.93|79.86
+Kathmandu|KTM|Nepal|Nepal Standard Time|27.72|85.32
+Dhaka|DAC|Bangladesh|Bangladesh Standard Time|23.81|90.41
+Thimphu|PBH|Bhutan|Bangladesh Standard Time|27.47|89.64
+
+[East & Southeast Asia]
+Yangon|RGN|Myanmar|Myanmar Standard Time|16.87|96.20
+Bangkok|BKK|Thailand|SE Asia Standard Time|13.76|100.50
+Hanoi|HAN|Vietnam|SE Asia Standard Time|21.03|105.85
+Ho Chi Minh City|SGN|Vietnam|SE Asia Standard Time|10.82|106.63
+Phnom Penh|PNH|Cambodia|SE Asia Standard Time|11.56|104.92
+Vientiane|VTE|Laos|SE Asia Standard Time|17.97|102.63
+Jakarta|JKT|Indonesia|SE Asia Standard Time|-6.21|106.85
+Surabaya|SUB|Indonesia|SE Asia Standard Time|-7.26|112.75
+Bali (Denpasar)|DPS|Indonesia|Singapore Standard Time|-8.65|115.22
+Kuala Lumpur|KUL|Malaysia|Singapore Standard Time|3.14|101.69
+Singapore|SIN|Singapore|Singapore Standard Time|1.35|103.82
+Manila|MNL|Philippines|Singapore Standard Time|14.60|120.98
+Cebu|CEB|Philippines|Singapore Standard Time|10.32|123.89
+Bandar Seri Begawan|BWN|Brunei|Singapore Standard Time|4.89|114.94
+Hong Kong|HKG|Hong Kong|China Standard Time|22.32|114.17
+Macau|MFM|Macau|China Standard Time|22.20|113.54
+Shanghai|SHA|China|China Standard Time|31.23|121.47
+Beijing|BJS|China|China Standard Time|39.90|116.40
+Shenzhen|SZX|China|China Standard Time|22.54|114.06
+Guangzhou|CAN|China|China Standard Time|23.13|113.26
+Chengdu|CTU|China|China Standard Time|30.57|104.07
+Chongqing|CKG|China|China Standard Time|29.56|106.55
+Wuhan|WUH|China|China Standard Time|30.59|114.31
+Hangzhou|HGH|China|China Standard Time|30.27|120.15
+Nanjing|NKG|China|China Standard Time|32.06|118.80
+Xi'an|XIY|China|China Standard Time|34.34|108.94
+Tianjin|TSN|China|China Standard Time|39.08|117.20
+Taipei|TPE|Taiwan|Taipei Standard Time|25.03|121.57
+Kaohsiung|KHH|Taiwan|Taipei Standard Time|22.63|120.30
+Ulaanbaatar|ULN|Mongolia|Ulaanbaatar Standard Time|47.89|106.91
+Seoul|SEL|South Korea|Korea Standard Time|37.57|126.98
+Busan|PUS|South Korea|Korea Standard Time|35.18|129.08
+Incheon|ICN|South Korea|Korea Standard Time|37.46|126.71
+Pyongyang|FNJ|North Korea|North Korea Standard Time|39.02|125.75
+Tokyo|TYO|Japan|Tokyo Standard Time|35.68|139.69
+Osaka|OSA|Japan|Tokyo Standard Time|34.69|135.50
+Nagoya|NGO|Japan|Tokyo Standard Time|35.18|136.91
+Sapporo|SPK|Japan|Tokyo Standard Time|43.06|141.35
+Fukuoka|FUK|Japan|Tokyo Standard Time|33.59|130.40
+Kyoto|UKY|Japan|Tokyo Standard Time|35.01|135.77
+
+[Australia & Pacific]
+Perth|PER|Australia|W. Australia Standard Time|-31.95|115.86
+Darwin|DRW|Australia|AUS Central Standard Time|-12.46|130.84
+Adelaide|ADL|Australia|Cen. Australia Standard Time|-34.93|138.60
+Brisbane|BNE|Australia|E. Australia Standard Time|-27.47|153.03
+Gold Coast|OOL|Australia|E. Australia Standard Time|-28.02|153.40
+Sydney|SYD|Australia|AUS Eastern Standard Time|-33.87|151.21
+Melbourne|MEL|Australia|AUS Eastern Standard Time|-37.81|144.96
+Canberra|CBR|Australia|AUS Eastern Standard Time|-35.28|149.13
+Hobart|HBA|Australia|Tasmania Standard Time|-42.88|147.33
+Port Moresby|POM|Papua New Guinea|West Pacific Standard Time|-9.44|147.18
+Guam|GUM|Guam|West Pacific Standard Time|13.44|144.79
+Nouméa|NOU|New Caledonia|Central Pacific Standard Time|-22.28|166.46
+Honiara|HIR|Solomon Islands|Central Pacific Standard Time|-9.43|159.95
+Auckland|AKL|New Zealand|New Zealand Standard Time|-36.85|174.76
+Wellington|WLG|New Zealand|New Zealand Standard Time|-41.29|174.78
+Christchurch|CHC|New Zealand|New Zealand Standard Time|-43.53|172.64
+Suva|SUV|Fiji|Fiji Standard Time|-18.14|178.44
+Nuku'alofa|TBU|Tonga|Tonga Standard Time|-21.14|-175.20
+Apia|APW|Samoa|Samoa Standard Time|-13.83|-171.76
+Papeete|PPT|French Polynesia|Hawaiian Standard Time|-17.54|-149.57
+Pago Pago|PPG|American Samoa|UTC-11|-14.28|-170.70

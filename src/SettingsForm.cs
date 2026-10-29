@@ -463,6 +463,11 @@ namespace TimeZoneWidgets
         {
             var menu = new ContextMenuStrip();
             menu.Font = Font;
+            var find = new ToolStripMenuItem("Find a city...");
+            find.Font = new Font(find.Font, FontStyle.Bold);
+            find.Click += delegate { string id, label; if (CityPickerForm.Show(this, out id, out label)) _app.AddWidget(id, label); };
+            menu.Items.Add(find);
+            menu.Items.Add(new ToolStripSeparator());
             foreach (var region in ZoneCatalog.Regions)
             {
                 var regionItem = new ToolStripMenuItem(region.Name);

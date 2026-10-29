@@ -16,8 +16,10 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   time**, the UTC offset and a sun/moon day-night marker. Widgets that are on a different
   calendar day than you get a "+1 day" / "−1 day" badge.
 - **12-hour or 24-hour (military) clock**, optional seconds.
-- **160+ time zones** – a curated list of ~60 popular cities grouped by region, plus every zone
-  Windows knows about. Daylight-saving rules come from Windows, so they stay correct offline.
+- **280 major cities in 9 regions**, from San Francisco to Seoul, each with a three-letter code
+  and map position, plus every one of the 140+ time zones Windows knows about. **Find a city…**
+  searches all of them by city, country, code or zone name (accent-insensitive, so "zurich" finds
+  Zürich). Daylight-saving rules come from Windows, so they stay correct offline.
   Your own zone is labelled with its city (taken from the Windows time-zone setting, so it
   needs no internet or location access), not "Local".
 - **Day/night globe widget** (can be turned off): a shaded Earth with the live day/night line,
@@ -152,11 +154,13 @@ src/            C# sources (WinForms, .NET Framework 4.8, no third-party package
   Settings.cs         settings model + JSON persistence
   WallpaperAnalyzer.cs  wallpaper → theme
   StartupManager.cs   HKCU Run key
-  ZoneCatalog.cs      popular cities → Windows time zone IDs (+ coordinates)
+  ZoneCatalog.cs      280 cities → Windows time zone IDs (+ codes, coordinates); generated from tools/cities.txt
+  CityPickerForm.cs   the "Find a city" search dialog
 assets/app.ico  generated icon
 build.ps1 / build.cmd   zero-install build (+ optional -Sign)
 tools/make-icon.ps1     icon generator
 tools/new-signing-cert.ps1  makes a self-signed code-signing certificate
+tools/cities.txt + gen-catalog.py   the city table and the script that writes it into ZoneCatalog.cs
 ```
 
 ## License
