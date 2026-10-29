@@ -31,6 +31,7 @@ namespace TimeZoneWidgets
             public string Label, Time, AmPm, Offset, Day, Date, Glyph;
             public string Market = "", MarketText = "";   // stock exchange + countdown (empty when unknown/off)
             public bool MarketOpen;
+            public int MarketPhase;      // see MarketStatus.Phase
         }
 
         readonly Timer _timer;
@@ -512,8 +513,11 @@ namespace TimeZoneWidgets
         static string MarketLine(Cell c) { return (c.MarketOpen ? "● " : "○ ") + c.Market + " · " + c.MarketText; }
 
         /// <summary>Translucent green laid over a cell while its market is trading.</summary>
-        static Color OpenTint(Theme t) { return Color.FromArgb(t.DarkPanel ? 75 : 60, 40, 175, 95); }
-        static Color OpenTextColor(Theme t) { return t.DarkPanel ? Color.FromArgb(135, 235, 165) : Color.FromArgb(14, 112, 52); }
+        /// <summary>Text colour for a cell's market line: by phase, else the given fallback.</summary>
+        static Color MarketColor(Cell c, Theme t, Color fallback)
+        {
+            return c.MarketPhase != 0 ? MarketStatus.PhaseText(c.MarketPhase, t.DarkPanel) : fallback;
+        }
 
         /// <summary>Width of the small stacked column: sun/moon glyph over "UTC" over the difference.</summary>
         float InfoColumnWidth(Graphics g, Cell c, StringFormat sf)
@@ -570,7 +574,7 @@ namespace TimeZoneWidgets
                 int diff = (z.Date - DateTime.Now.Date).Days;
                 if (diff != 0) c.Date += (diff > 0 ? " (+" : " (−") + Math.Abs(diff) + ")";
                 c.Glyph = (z.Hour >= 6 && z.Hour < 18) ? "☀" : "☽";
-                c.Market = ""; c.MarketText = ""; c.MarketOpen = false;
+                c.Market = ""; c.MarketText = ""; c.MarketOpen = false; c.MarketPhase = 0;
                 if (S.ShowMarkets)
                 {
                     var st = MarketCatalog.GetStatus(MarketCatalog.ForWidget(c.Config.TimeZoneId, c.Config.Label), utc);
@@ -578,6 +582,7 @@ namespace TimeZoneWidgets
                     {
                         c.Market = st.Market.Name;
                         c.MarketOpen = st.Open;
+                        c.MarketPhase = st.Phase;
                         c.MarketText = (st.Open ? "closes " : st.Break ? "break · opens " : "opens ") + st.Countdown;
                     }
                 }
@@ -588,7 +593,7 @@ namespace TimeZoneWidgets
         {
             var sb = new System.Text.StringBuilder();
             sb.Append(Edge).Append('|').Append(Width).Append('x').Append(Height).Append('|');
-            foreach (var c in _cells) sb.Append(c.Label).Append(c.Time).Append(c.AmPm).Append(c.Offset).Append(c.Day).Append(c.Date).Append(c.Glyph).Append(c.Market).Append(c.MarketText).Append(c.MarketOpen ? 'O' : 'C').Append('|');
+            foreach (var c in _cells) sb.Append(c.Label).Append(c.Time).Append(c.AmPm).Append(c.Offset).Append(c.Day).Append(c.Date).Append(c.Glyph).Append(c.Market).Append(c.MarketText).Append(c.MarketPhase).Append('|');
             return sb.ToString();
         }
 
@@ -724,7 +729,6 @@ namespace TimeZoneWidgets
             using (var text = new SolidBrush(t.Text))
             using (var mutedBrush = new SolidBrush(muted))
             using (var accent = new SolidBrush(t.Accent))
-            using (var openText = new SolidBrush(OpenTextColor(t)))
             using (var sep = new Pen(sepColor, 1f))
             using (var innerEdge = new Pen(t.Accent, 2 * px))
             {
@@ -757,7 +761,7 @@ namespace TimeZoneWidgets
                             g.DrawLine(sep, x - gap, h * 0.2f, x - gap, h * 0.8f);
                         }
                         c.Bounds = new Rectangle((int)(x - gap), 0, (int)(widths[i] + 2 * gap), h);
-                        if (c.MarketOpen) using (var open = new SolidBrush(OpenTint(t))) g.FillRectangle(open, c.Bounds);
+                        if (c.MarketPhase != 0) using (var tint = new SolidBrush(MarketStatus.PhaseTint(c.MarketPhase, t.DarkPanel))) g.FillRectangle(tint, c.Bounds);
                         if (_reorder && c.Config == _dragCfg) using (var hl = new SolidBrush(Color.FromArgb(55, t.Accent))) g.FillRectangle(hl, c.Bounds);
                         if (_singleRow)
                         {
@@ -776,7 +780,8 @@ namespace TimeZoneWidgets
                             if (c.Market.Length > 0)
                             {
                                 cx += 8 * px + W(g, c.Day + " · " + c.Date, _fDate, sf) + 8 * px;
-                                g.DrawString(c.Market + " " + c.MarketText, _fTiny, c.MarketOpen ? openText : mutedBrush, cx, cy - _fTiny.GetHeight(g) / 2, sf);
+                                using (var mb = new SolidBrush(MarketColor(c, t, muted)))
+                                    g.DrawString(c.Market + " " + c.MarketText, _fTiny, mb, cx, cy - _fTiny.GetHeight(g) / 2, sf);
                             }
                         }
                         else
@@ -825,10 +830,13 @@ namespace TimeZoneWidgets
                                 float my = top + mainH + 2 * px;
                                 float lineW = W(g, MarketLine(c), _fMarket, sf);
                                 float mx = x + (widths[i] - lineW) / 2;   // centred under the zone
-                                using (var dot = new SolidBrush(c.MarketOpen ? OpenTextColor(t) : muted))
-                                    g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, mx, my, sf);
                                 float dotW = W(g, "● ", _fMarket, sf);
-                                g.DrawString(c.Market + " · " + c.MarketText, _fMarket, c.MarketOpen ? openText : text, mx + dotW, my, sf);
+                                using (var dot = new SolidBrush(MarketColor(c, t, muted)))
+                                using (var mb = new SolidBrush(MarketColor(c, t, t.Text)))
+                                {
+                                    g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, mx, my, sf);
+                                    g.DrawString(c.Market + " · " + c.MarketText, _fMarket, mb, mx + dotW, my, sf);
+                                }
                             }
                         }
                         x += widths[i] + 2 * gap;
@@ -846,7 +854,7 @@ namespace TimeZoneWidgets
                         float cy = y + padY;
                         float cellH = contentH + (c.Market.Length > 0 ? smallH + px : 0);
                         c.Bounds = new Rectangle(0, (int)y, w, (int)(cellH + 2 * padY));
-                        if (c.MarketOpen) using (var open = new SolidBrush(OpenTint(t))) g.FillRectangle(open, c.Bounds);
+                        if (c.MarketPhase != 0) using (var tint = new SolidBrush(MarketStatus.PhaseTint(c.MarketPhase, t.DarkPanel))) g.FillRectangle(tint, c.Bounds);
                         if (_reorder && c.Config == _dragCfg) using (var hl = new SolidBrush(Color.FromArgb(55, t.Accent))) g.FillRectangle(hl, c.Bounds);
                         g.DrawString(c.Label, _fLabel, text, padX, cy, sf);
                         float offW = W(g, c.Offset, _fSmall, sf);
@@ -864,7 +872,8 @@ namespace TimeZoneWidgets
                         if (c.Market.Length > 0)
                         {
                             cy += dateH + px;
-                            g.DrawString((c.MarketOpen ? "● " : "○ ") + c.Market + " · " + c.MarketText, _fSmall, c.MarketOpen ? openText : mutedBrush, padX, cy, sf);
+                            using (var mb = new SolidBrush(MarketColor(c, t, muted)))
+                                g.DrawString((c.MarketOpen ? "● " : "○ ") + c.Market + " · " + c.MarketText, _fSmall, mb, padX, cy, sf);
                         }
                         y += cellH + 2 * padY;
                     }

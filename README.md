@@ -54,8 +54,8 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
 - **Stock-market countdown**: every zone shows its main exchange (NYSE, LSE, TSE, HKEX, TWSE…)
   with a to-the-minute countdown to the next open, or to the close once trading has started,
-  on a line of its own under the zone, and the widget or ribbon cell turns green while the
-  market is open. Regular hours and trading
+  on a line of its own under the zone. The widget or ribbon cell turns **pale yellow** in the hour
+  before the market opens, **green** while it is open, and **pale red** in the last hour before it closes. Regular hours and trading
   days (including Sunday–Thursday markets and lunch breaks) are built in for ~110 exchanges;
   public holidays are not. Switch it off in Settings if you don't need it.
 - **Convert a time**: double-click a widget or a ribbon zone, type a time in that zone (9:30 pm,

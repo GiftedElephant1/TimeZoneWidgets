@@ -37,6 +37,42 @@ namespace TimeZoneWidgets
         public TimeSpan Until;     // time until the close (if open) or the next open (if closed)
         public bool Known { get { return Market != null; } }
 
+        /// <summary>0 = nothing special, 1 = open, 2 = opens within the hour, 3 = open and closes within the hour.</summary>
+        public int Phase
+        {
+            get
+            {
+                if (Market == null) return 0;
+                bool soon = Until <= TimeSpan.FromHours(1);
+                if (Open) return soon ? 3 : 1;
+                return soon ? 2 : 0;
+            }
+        }
+
+        /// <summary>Translucent tint for a phase: green open, pale yellow before the open, pale red before the close.</summary>
+        public static System.Drawing.Color PhaseTint(int phase, bool darkPanel)
+        {
+            switch (phase)
+            {
+                case 1: return System.Drawing.Color.FromArgb(darkPanel ? 75 : 60, 40, 175, 95);
+                case 2: return System.Drawing.Color.FromArgb(darkPanel ? 80 : 95, 250, 205, 50);
+                case 3: return System.Drawing.Color.FromArgb(darkPanel ? 85 : 70, 235, 70, 60);
+                default: return System.Drawing.Color.Transparent;
+            }
+        }
+
+        /// <summary>Text colour matching <see cref="PhaseTint"/>, readable on a dark or light panel.</summary>
+        public static System.Drawing.Color PhaseText(int phase, bool darkPanel)
+        {
+            switch (phase)
+            {
+                case 1: return darkPanel ? System.Drawing.Color.FromArgb(135, 235, 165) : System.Drawing.Color.FromArgb(14, 112, 52);
+                case 2: return darkPanel ? System.Drawing.Color.FromArgb(255, 220, 120) : System.Drawing.Color.FromArgb(140, 95, 0);
+                case 3: return darkPanel ? System.Drawing.Color.FromArgb(255, 150, 140) : System.Drawing.Color.FromArgb(165, 30, 30);
+                default: return System.Drawing.Color.Empty;
+            }
+        }
+
         /// <summary>"2h 05m", "3m", "2d 9h 14m" – always to the minute.</summary>
         public string Countdown
         {

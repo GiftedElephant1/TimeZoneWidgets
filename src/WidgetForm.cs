@@ -16,6 +16,7 @@ namespace TimeZoneWidgets
             public string Label, Time, AmPm, Offset, Day, Date, Badge, Glyph;
             public string Market = "", MarketText = "";   // stock exchange + countdown (empty when unknown/off)
             public bool MarketOpen;
+            public int MarketPhase;      // see MarketStatus.Phase
             public string Key;
         }
 
@@ -281,10 +282,11 @@ namespace TimeZoneWidgets
                 {
                     snap.Market = st.Market.Name;
                     snap.MarketOpen = st.Open;
+                    snap.MarketPhase = st.Phase;
                     snap.MarketText = (st.Open ? "closes in " : st.Break ? "break · opens in " : "opens in ") + st.Countdown;
                 }
             }
-            snap.Key = string.Join("|", new string[] { snap.Label, snap.Time, snap.AmPm, snap.Offset, snap.Day, snap.Date, snap.Badge, snap.Glyph, snap.Market, snap.MarketText, snap.MarketOpen ? "O" : "C" });
+            snap.Key = string.Join("|", new string[] { snap.Label, snap.Time, snap.AmPm, snap.Offset, snap.Day, snap.Date, snap.Badge, snap.Glyph, snap.Market, snap.MarketText, snap.MarketPhase.ToString() });
             return snap;
         }
 
@@ -370,7 +372,7 @@ namespace TimeZoneWidgets
             var muted = Color.FromArgb(t.DarkPanel ? 165 : 150, t.Text);
 
             using (var sf = Typographic())
-            using (var bgBrush = new SolidBrush(snap.MarketOpen ? Blend(t.Background, Color.FromArgb(40, 175, 95), t.DarkPanel ? 0.30f : 0.24f) : t.Background))
+            using (var bgBrush = new SolidBrush(snap.MarketPhase != 0 ? Overlay(t.Background, MarketStatus.PhaseTint(snap.MarketPhase, t.DarkPanel)) : t.Background))
             using (var textBrush = new SolidBrush(t.Text))
             using (var mutedBrush = new SolidBrush(muted))
             using (var accentBrush = new SolidBrush(t.Accent))
@@ -435,16 +437,18 @@ namespace TimeZoneWidgets
                 if (snap.Market.Length > 0)
                 {
                     y += dateH + gap;
-                    var marketColor = snap.MarketOpen ? (t.DarkPanel ? Color.FromArgb(135, 235, 165) : Color.FromArgb(14, 112, 52)) : muted;
+                    var marketColor = snap.MarketPhase != 0 ? MarketStatus.PhaseText(snap.MarketPhase, t.DarkPanel) : muted;
                     using (var mb = new SolidBrush(marketColor))
                         g.DrawString((snap.MarketOpen ? "● " : "○ ") + snap.Market + " · " + snap.MarketText, _fSmall, mb, pad, y, sf);
                 }
             }
         }
 
-        static Color Blend(Color a, Color b, float amount)
+        /// <summary>Lays a translucent colour over an opaque one (what the ribbon's tint does on screen).</summary>
+        static Color Overlay(Color under, Color over)
         {
-            return Color.FromArgb(a.A, (int)(a.R + (b.R - a.R) * amount), (int)(a.G + (b.G - a.G) * amount), (int)(a.B + (b.B - a.B) * amount));
+            float a = over.A / 255f;
+            return Color.FromArgb(under.A, (int)(under.R + (over.R - under.R) * a), (int)(under.G + (over.G - under.G) * a), (int)(under.B + (over.B - under.B) * a));
         }
 
         public static GraphicsPath RoundedRect(RectangleF r, float radius)
