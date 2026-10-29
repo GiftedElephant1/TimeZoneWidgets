@@ -41,6 +41,7 @@ namespace TimeZoneWidgets
 
         Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny, _fMarket;
         bool _marketRow;   // horizontal compact layout shows the stock market on a second line
+        bool _nudgedShell; // see TargetBounds
         float _fit = 1f;
         bool _singleRow;
 
@@ -543,7 +544,8 @@ namespace TimeZoneWidgets
             _fSmall = new Font("Segoe UI", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fGlyph = new Font("Segoe UI Symbol", 8f * k, FontStyle.Regular, GraphicsUnit.Point);
             _fTiny = new Font("Segoe UI", 6.5f * k, FontStyle.Regular, GraphicsUnit.Point);
-            _fMarket = new Font("Segoe UI", 10f * k, FontStyle.Regular, GraphicsUnit.Point);
+            // The market line keeps a readable size however much the top row has to shrink to fit.
+            _fMarket = new Font("Segoe UI", Math.Max(11f * Px, 11f * k), FontStyle.Regular, GraphicsUnit.Point);
         }
 
         static StringFormat Typographic()
@@ -607,7 +609,14 @@ namespace TimeZoneWidgets
                         : Edge == AppSettings.EdgeLeft ? AppBar.ABE_LEFT : AppBar.ABE_RIGHT;
                 return _appBar.SetPosition(abe, thickness, screen.Bounds);
             }
-            if (_appBar != null) _appBar.Unregister();
+            if (_appBar != null)
+            {
+                // Overlay mode reserves nothing. Registering and unregistering once makes the
+                // shell re-check its appbar list, which drops any reservation left behind by an
+                // instance that was killed while it still had space reserved.
+                if (!_nudgedShell) { _appBar.Register(); _nudgedShell = true; }
+                _appBar.Unregister();
+            }
             var area = screen.WorkingArea;
             switch (Edge)
             {
@@ -647,10 +656,16 @@ namespace TimeZoneWidgets
                                              : Math.Max(columnH, Math.Max(_fTime.GetHeight(g), _fDay.GetHeight(g) + _fDate.GetHeight(g) + 2 * px))
                                                + (_marketRow ? _fMarket.GetHeight(g) + 2 * px : 0) + 8 * px;
                     fit = Math.Min(1.8f, (Height - 2 * px) / needH);
-                    // Also shrink if the cells would overflow the screen width.
-                    float total = 0;
-                    foreach (var c in _cells) total += CellWidth(g, c, sf) + 12 * px;
-                    if (total > Width - 20 * px) fit = Math.Min(fit, (Width - 20 * px) / total);
+                    // Shrink the top row until every cell fits the bar's length. The market line
+                    // keeps its own size (see CreateFonts), so only clocks and dates get smaller.
+                    for (int step = 0; step < 40; step++)
+                    {
+                        CreateFonts(Math.Max(0.4f, fit), _singleRow);
+                        float total = 0;
+                        foreach (var c in _cells) total += CellWidth(g, c, sf) + 12 * px;
+                        if (total <= Width - 20 * px || fit <= 0.4f) break;
+                        fit -= 0.04f;
+                    }
                 }
                 else
                 {
