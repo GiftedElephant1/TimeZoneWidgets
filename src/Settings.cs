@@ -31,7 +31,7 @@ namespace TimeZoneWidgets
         public const string EdgeRight = "right";
         public const int MinRibbonHeight = 26, MaxRibbonHeight = 240;
         public const int DefaultRibbonHeight = 44;
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
         public const int MinRibbonWidth = 120, MaxRibbonWidth = 420;
 
         [DataMember(Order = 0)] public int Version { get; set; }
@@ -76,6 +76,8 @@ namespace TimeZoneWidgets
         [DataMember(Order = 24)] public string RibbonMonitor { get; set; }
         /// <summary>Show a ribbon on every monitor instead of just one.</summary>
         [DataMember(Order = 25)] public bool RibbonAllMonitors { get; set; }
+        /// <summary>Show each zone's stock market: a countdown to the open/close and a tint while it trades.</summary>
+        [DataMember(Order = 26)] public bool ShowMarkets { get; set; }
 
         public static string Directory
         {
@@ -116,6 +118,7 @@ namespace TimeZoneWidgets
             s.RibbonAutoHide = false;
             s.RibbonMonitor = "";
             s.RibbonAllMonitors = false;
+            s.ShowMarkets = true;
             return s;
         }
 
@@ -173,6 +176,12 @@ namespace TimeZoneWidgets
                 // v1.2: city codes on the ribbon (a missing JSON member deserializes as false).
                 RibbonCityCodes = true;
                 Version = 3;
+            }
+            if (Version < 4)
+            {
+                // v1.8: stock-market countdowns, on by default.
+                ShowMarkets = true;
+                Version = 4;
             }
             if (Version < CurrentVersion) Version = CurrentVersion;
             if (Scale < 50 || Scale > 200) Scale = d.Scale;

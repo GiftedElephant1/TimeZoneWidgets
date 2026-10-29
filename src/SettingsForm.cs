@@ -11,7 +11,7 @@ namespace TimeZoneWidgets
         bool _loading = true;
 
         RadioButton _r12, _r24;
-        CheckBox _seconds, _offset, _auto, _startup, _lock, _globe, _globeSpin;
+        CheckBox _seconds, _offset, _markets, _auto, _startup, _lock, _globe, _globeSpin;
         TrackBar _scale, _opacity;
         Label _scaleLabel, _opacityLabel;
         Button _bg, _text, _accent, _redetect;
@@ -61,6 +61,8 @@ namespace TimeZoneWidgets
             AddRow(table, "", _seconds);
             _offset = Check("Show UTC offset on each widget", delegate { S.ShowUtcOffset = _offset.Checked; Apply(); });
             AddRow(table, "", _offset);
+            _markets = Check("Show each zone's stock market: countdown to the open/close, green while trading", delegate { S.ShowMarkets = _markets.Checked; Apply(); });
+            AddRow(table, "", _markets);
 
             // Size
             var sizeRow = Flow();
@@ -303,6 +305,7 @@ namespace TimeZoneWidgets
             _r24.Checked = S.Use24Hour;
             _seconds.Checked = S.ShowSeconds;
             _offset.Checked = S.ShowUtcOffset;
+            _markets.Checked = S.ShowMarkets;
             _scale.Value = Math.Max(_scale.Minimum, Math.Min(_scale.Maximum, S.Scale));
             _scaleLabel.Text = _scale.Value + "%";
             _opacity.Value = Math.Max(_opacity.Minimum, Math.Min(_opacity.Maximum, S.Opacity));

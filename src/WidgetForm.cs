@@ -14,6 +14,8 @@ namespace TimeZoneWidgets
         class Snapshot
         {
             public string Label, Time, AmPm, Offset, Day, Date, Badge, Glyph;
+            public string Market = "", MarketText = "";   // stock exchange + countdown (empty when unknown/off)
+            public bool MarketOpen;
             public string Key;
         }
 
@@ -272,7 +274,17 @@ namespace TimeZoneWidgets
             else snap.Badge = "";
             bool isDay = zoned.Hour >= 6 && zoned.Hour < 18;
             snap.Glyph = isDay ? "☀" : "☽";
-            snap.Key = string.Join("|", new string[] { snap.Label, snap.Time, snap.AmPm, snap.Offset, snap.Day, snap.Date, snap.Badge, snap.Glyph });
+            if (S.ShowMarkets)
+            {
+                var st = MarketCatalog.GetStatus(MarketCatalog.ForWidget(Config.TimeZoneId, Config.Label), utc);
+                if (st.Known)
+                {
+                    snap.Market = st.Market.Name;
+                    snap.MarketOpen = st.Open;
+                    snap.MarketText = (st.Open ? "closes in " : st.Break ? "break · opens in " : "opens in ") + st.Countdown;
+                }
+            }
+            snap.Key = string.Join("|", new string[] { snap.Label, snap.Time, snap.AmPm, snap.Offset, snap.Day, snap.Date, snap.Badge, snap.Glyph, snap.Market, snap.MarketText, snap.MarketOpen ? "O" : "C" });
             return snap;
         }
 
@@ -304,6 +316,7 @@ namespace TimeZoneWidgets
                 float labelH = _fLabel.GetHeight(g);
                 float timeH = _fTime.GetHeight(g);
                 float dateH = _fDate.GetHeight(g);
+                float smallH = _fSmall.GetHeight(g);
 
                 string widestTime = (S.ShowSeconds ? "88:88:88" : "88:88");
                 float timeW = Measure(g, widestTime, _fTime, sf).Width;
@@ -312,10 +325,11 @@ namespace TimeZoneWidgets
                 if (snap.Badge.Length > 0) dateW += 10 * px + Measure(g, snap.Badge, _fSmall, sf).Width + 12 * px;
                 float topW = Measure(g, snap.Label, _fLabel, sf).Width + 12 * px
                     + Measure(g, snap.Glyph, _fGlyph, sf).Width + 5 * px + Measure(g, snap.Offset, _fSmall, sf).Width;
-                float contentW = Math.Max(timeW, Math.Max(dateW, topW));
+                float marketW = snap.Market.Length > 0 ? Measure(g, "● " + snap.Market + " · " + snap.MarketText, _fSmall, sf).Width : 0;
+                float contentW = Math.Max(Math.Max(timeW, marketW), Math.Max(dateW, topW));
 
                 int w = (int)Math.Ceiling(Math.Max(230 * px, contentW + 2 * pad));
-                int h = (int)Math.Ceiling(pad + labelH + gap + timeH + gap + dateH + pad);
+                int h = (int)Math.Ceiling(pad + labelH + gap + timeH + gap + dateH + (snap.Market.Length > 0 ? gap + smallH : 0) + pad);
                 if (w != Width || h != Height) Size = new Size(w, h);
             }
         }
@@ -356,7 +370,7 @@ namespace TimeZoneWidgets
             var muted = Color.FromArgb(t.DarkPanel ? 165 : 150, t.Text);
 
             using (var sf = Typographic())
-            using (var bgBrush = new SolidBrush(t.Background))
+            using (var bgBrush = new SolidBrush(snap.MarketOpen ? Blend(t.Background, Color.FromArgb(40, 175, 95), t.DarkPanel ? 0.30f : 0.24f) : t.Background))
             using (var textBrush = new SolidBrush(t.Text))
             using (var mutedBrush = new SolidBrush(muted))
             using (var accentBrush = new SolidBrush(t.Accent))
@@ -416,7 +430,21 @@ namespace TimeZoneWidgets
                         g.FillPath(pillBrush, pill);
                     g.DrawString(snap.Badge, _fSmall, accentBrush, bx + 6 * px, by + 1 * px, sf);
                 }
+
+                // Row 4: the local stock market – countdown to the open or close; green while trading.
+                if (snap.Market.Length > 0)
+                {
+                    y += dateH + gap;
+                    var marketColor = snap.MarketOpen ? (t.DarkPanel ? Color.FromArgb(135, 235, 165) : Color.FromArgb(14, 112, 52)) : muted;
+                    using (var mb = new SolidBrush(marketColor))
+                        g.DrawString((snap.MarketOpen ? "● " : "○ ") + snap.Market + " · " + snap.MarketText, _fSmall, mb, pad, y, sf);
+                }
             }
+        }
+
+        static Color Blend(Color a, Color b, float amount)
+        {
+            return Color.FromArgb(a.A, (int)(a.R + (b.R - a.R) * amount), (int)(a.G + (b.G - a.G) * amount), (int)(a.B + (b.B - a.B) * amount));
         }
 
         public static GraphicsPath RoundedRect(RectangleF r, float radius)
