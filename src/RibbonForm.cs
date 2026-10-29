@@ -42,6 +42,7 @@ namespace TimeZoneWidgets
         Font _fLabel, _fTime, _fAmPm, _fDay, _fDate, _fSmall, _fGlyph, _fTiny, _fMarket;
         bool _marketRow;   // horizontal compact layout shows the stock market on a second line
         bool _nudgedShell; // see TargetBounds
+        int _autoWidthDesign;   // a left/right bar grows to this (design px) when the chosen width is too narrow
         Bitmap _frame;     // the last full rendering of the bar (auto-hide pushes a cropped part of it)
         float _fit = 1f;
         bool _singleRow;
@@ -562,10 +563,9 @@ namespace TimeZoneWidgets
             float k = Px * fit;
             // Horizontal cells: the city is as prominent as the time (same size, semibold), with the
             // day/date stacked in small text between them. Vertical ribbons keep the three-row clock.
-            float timePt = singleRow ? 13f : Horizontal ? 16.5f : 19f;
+            float timePt = singleRow ? 13f : 16.5f;
             _fTime = new Font("Segoe UI", timePt * k, FontStyle.Regular, GraphicsUnit.Point);
-            _fLabel = Horizontal ? new Font("Segoe UI Semibold", timePt * k, FontStyle.Regular, GraphicsUnit.Point)
-                                 : new Font("Segoe UI", 9f * k, FontStyle.Bold, GraphicsUnit.Point);
+            _fLabel = new Font("Segoe UI Semibold", timePt * k, FontStyle.Regular, GraphicsUnit.Point);
             _fAmPm = new Font("Segoe UI", 8.5f * k, FontStyle.Bold, GraphicsUnit.Point);
             _fDay = new Font("Segoe UI", 8.5f * k, FontStyle.Bold, GraphicsUnit.Point);
             _fDate = new Font("Segoe UI", 8.5f * k, FontStyle.Regular, GraphicsUnit.Point);
@@ -630,7 +630,9 @@ namespace TimeZoneWidgets
         Rectangle TargetBounds()
         {
             var screen = TargetScreen;
-            int thickness = (int)Math.Round(ThicknessDesign * Px);
+            int design = ThicknessDesign;
+            if (!Horizontal && _autoWidthDesign > design) design = _autoWidthDesign;
+            int thickness = (int)Math.Round(design * Px);
             if (S.RibbonReserveSpace && !S.RibbonAutoHide && _appBar != null)
             {
                 int abe = Edge == AppSettings.EdgeTop ? AppBar.ABE_TOP : Edge == AppSettings.EdgeBottom ? AppBar.ABE_BOTTOM
@@ -696,9 +698,17 @@ namespace TimeZoneWidgets
                 }
                 else
                 {
+                    // Left/right: never scale the text; make the bar at least as wide as its widest cell.
                     float widest = 1;
                     foreach (var c in _cells) widest = Math.Max(widest, CellWidth(g, c, sf));
-                    fit = Math.Min(1f, (_shown.Width - 24 * px) / widest);
+                    fit = 1f;
+                    int need = (int)Math.Ceiling((widest + 24 * px) / Px);
+                    if (need != _autoWidthDesign)
+                    {
+                        _autoWidthDesign = need;
+                        _shown = TargetBounds();
+                        if (_slide == 0 && Bounds != _shown) Bounds = _shown;
+                    }
                 }
                 _fit = Math.Max(0.4f, fit);
             }
@@ -723,8 +733,11 @@ namespace TimeZoneWidgets
                 float marketRowW = _marketRow && c.Market.Length > 0 ? W(g, MarketLine(c), _fMarket, sf) : 0;
                 return Math.Max(mainW, marketRowW);
             }
-            float row4 = c.Market.Length > 0 ? W(g, "● " + c.Market + " · " + c.MarketText, _fSmall, sf) : 0;
-            return Math.Max(Math.Max(row1, row4), Math.Max(row2, row3));
+            // Left/right bar rows: [city time] / [glyph UTC±n] / [day · date] / [market].
+            float v1 = W(g, c.Label, _fLabel, sf) + 8 * px + row2;
+            float v2 = W(g, c.Glyph, _fGlyph, sf) + 4 * px + W(g, c.Offset, _fSmall, sf);
+            float v4 = c.Market.Length > 0 ? W(g, MarketLine(c), _fMarket, sf) : 0;
+            return Math.Max(Math.Max(v1, v2), Math.Max(row3, v4));
         }
 
         // ---- rendering ------------------------------------------------------------------------
@@ -887,34 +900,43 @@ namespace TimeZoneWidgets
                 {
                     float padX = 12 * px, padY = 8 * px;
                     float y = 10 * px;
-                    float contentH = labelH + timeH + dateH + 2 * px;
+                    float marketH = _fMarket.GetHeight(g);
                     for (int i = 0; i < _cells.Count; i++)
                     {
                         var c = _cells[i];
                         if (i > 0) g.DrawLine(sep, padX, y, w - padX, y);
-                        float cy = y + padY;
-                        float cellH = contentH + (c.Market.Length > 0 ? smallH + px : 0);
+                        float row1H = Math.Max(labelH, timeH);
+                        float cellH = row1H + 2 * px + smallH + 2 * px + dateH + (c.Market.Length > 0 ? 2 * px + marketH : 0);
                         c.Bounds = new Rectangle(0, (int)y, w, (int)(cellH + 2 * padY));
                         if (c.MarketPhase != 0) using (var tint = new SolidBrush(MarketStatus.PhaseTint(c.MarketPhase, t.DarkPanel))) g.FillRectangle(tint, c.Bounds);
                         if (_reorder && c.Config == _dragCfg) using (var hl = new SolidBrush(Color.FromArgb(55, t.Accent))) g.FillRectangle(hl, c.Bounds);
-                        g.DrawString(c.Label, _fLabel, text, padX, cy, sf);
-                        float offW = W(g, c.Offset, _fSmall, sf);
-                        float glyphW = W(g, c.Glyph, _fGlyph, sf);
-                        float rx = w - padX - offW;
-                        g.DrawString(c.Offset, _fSmall, mutedBrush, rx, cy + (labelH - smallH) / 2, sf);
-                        g.DrawString(c.Glyph, _fGlyph, mutedBrush, rx - glyphW - (offW > 0 ? 3 * px : 0), cy + (labelH - glyphH) / 2, sf);
-                        cy += labelH + px;
-                        g.DrawString(c.Time, _fTime, accent, padX - px, cy, sf);
+                        float cy = y + padY;
+                        // Row 1: city and time side by side, the same sizes as on a top/bottom bar.
+                        g.DrawString(c.Label, _fLabel, text, padX, cy + (row1H - labelH) / 2, sf);
+                        float tx = padX + W(g, c.Label, _fLabel, sf) + 8 * px;
+                        float ty = cy + (row1H - timeH) / 2;
+                        g.DrawString(c.Time, _fTime, accent, tx - px, ty, sf);
                         if (c.AmPm.Length > 0)
-                            g.DrawString(c.AmPm, _fAmPm, text, padX + W(g, c.Time, _fTime, sf) + 4 * px, cy + timeH - ampmH - 4 * px, sf);
-                        cy += timeH + px;
+                            g.DrawString(c.AmPm, _fAmPm, text, tx + W(g, c.Time, _fTime, sf) + 4 * px, ty + timeH - ampmH - 4 * px, sf);
+                        cy += row1H + 2 * px;
+                        // Row 2: sun/moon, "UTC" and the difference.
+                        g.DrawString(c.Glyph, _fGlyph, mutedBrush, padX, cy + (smallH - glyphH) / 2, sf);
+                        g.DrawString(c.Offset, _fSmall, mutedBrush, padX + W(g, c.Glyph, _fGlyph, sf) + 4 * px, cy, sf);
+                        cy += smallH + 2 * px;
+                        // Row 3: weekday · date.
                         g.DrawString(c.Day, _fDay, text, padX, cy, sf);
                         g.DrawString(" · " + c.Date, _fDate, mutedBrush, padX + W(g, c.Day, _fDay, sf), cy, sf);
+                        // Row 4: the market, coloured by phase.
                         if (c.Market.Length > 0)
                         {
-                            cy += dateH + px;
-                            using (var mb = new SolidBrush(MarketColor(c, t, muted)))
-                                g.DrawString((c.MarketOpen ? "● " : "○ ") + c.Market + " · " + c.MarketText, _fSmall, mb, padX, cy, sf);
+                            cy += dateH + 2 * px;
+                            float dotW = W(g, "● ", _fMarket, sf);
+                            using (var dot = new SolidBrush(MarketColor(c, t, muted)))
+                            using (var mb = new SolidBrush(MarketColor(c, t, t.Text)))
+                            {
+                                g.DrawString(c.MarketOpen ? "●" : "○", _fMarket, dot, padX, cy, sf);
+                                g.DrawString(c.Market + " · " + c.MarketText, _fMarket, mb, padX + dotW, cy, sf);
+                            }
                         }
                         y += cellH + 2 * padY;
                     }
