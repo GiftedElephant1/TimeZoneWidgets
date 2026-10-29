@@ -17,6 +17,11 @@ namespace TimeZoneWidgets
         Button _bg, _text, _accent, _redetect;
         ComboBox _layer;
         ListBox _widgetList;
+        RadioButton _layoutFloating, _layoutRibbon;
+        ComboBox _ribbonEdge;
+        TrackBar _ribbonSize;
+        Label _ribbonSizeLabel;
+        CheckBox _ribbonReserve;
 
         AppSettings S { get { return _app.Settings; } }
 
@@ -84,6 +89,39 @@ namespace TimeZoneWidgets
             colorRow.Controls.Add(_bg); colorRow.Controls.Add(_text); colorRow.Controls.Add(_accent); colorRow.Controls.Add(_redetect);
             AddRow(table, "", colorRow);
 
+            // Layout: floating widgets or a docked ribbon
+            var layoutRow = Flow();
+            _layoutFloating = new RadioButton(); _layoutFloating.Text = "Floating widgets"; _layoutFloating.AutoSize = true;
+            _layoutRibbon = new RadioButton(); _layoutRibbon.Text = "Ribbon docked to a screen edge"; _layoutRibbon.AutoSize = true; _layoutRibbon.Margin = new Padding(18, 3, 3, 3);
+            _layoutFloating.CheckedChanged += delegate { if (!_loading && _layoutFloating.Checked) _app.SetLayoutMode(AppSettings.LayoutFloating); };
+            _layoutRibbon.CheckedChanged += delegate { if (!_loading && _layoutRibbon.Checked) _app.SetLayoutMode(AppSettings.LayoutRibbon); };
+            layoutRow.Controls.Add(_layoutFloating); layoutRow.Controls.Add(_layoutRibbon);
+            AddRow(table, "Layout", layoutRow);
+
+            var ribbonRow = Flow();
+            var edgeLabel = new Label(); edgeLabel.Text = "Edge:"; edgeLabel.AutoSize = true; edgeLabel.Margin = new Padding(3, 8, 3, 0);
+            _ribbonEdge = new ComboBox(); _ribbonEdge.DropDownStyle = ComboBoxStyle.DropDownList; _ribbonEdge.Width = 110;
+            _ribbonEdge.Items.AddRange(new object[] { "Top", "Bottom", "Left", "Right" });
+            _ribbonEdge.SelectedIndexChanged += delegate { if (!_loading) _app.SetRibbonEdge(EdgeFromIndex(_ribbonEdge.SelectedIndex)); };
+            _ribbonReserve = Check("Reserve screen space (like the taskbar)", delegate { S.RibbonReserveSpace = _ribbonReserve.Checked; Apply(); });
+            _ribbonReserve.Margin = new Padding(14, 6, 3, 3);
+            ribbonRow.Controls.Add(edgeLabel); ribbonRow.Controls.Add(_ribbonEdge); ribbonRow.Controls.Add(_ribbonReserve);
+            AddRow(table, "Ribbon", ribbonRow);
+
+            var ribbonSizeRow = Flow();
+            _ribbonSize = Slider(AppSettings.MinRibbonHeight, AppSettings.MaxRibbonHeight, 20);
+            _ribbonSizeLabel = new Label(); _ribbonSizeLabel.AutoSize = true; _ribbonSizeLabel.Margin = new Padding(6, 8, 0, 0);
+            _ribbonSize.ValueChanged += delegate
+            {
+                bool horizontal = S.RibbonEdge == AppSettings.EdgeTop || S.RibbonEdge == AppSettings.EdgeBottom;
+                _ribbonSizeLabel.Text = (horizontal ? "Height " : "Width ") + _ribbonSize.Value + " px";
+                if (_loading) return;
+                if (horizontal) S.RibbonHeight = _ribbonSize.Value; else S.RibbonWidth = _ribbonSize.Value;
+                Apply();
+            };
+            ribbonSizeRow.Controls.Add(_ribbonSize); ribbonSizeRow.Controls.Add(_ribbonSizeLabel);
+            AddRow(table, "", ribbonSizeRow);
+
             // Layer
             _layer = new ComboBox();
             _layer.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -138,7 +176,7 @@ namespace TimeZoneWidgets
             removeBtn.Click += delegate
             {
                 int i = _widgetList.SelectedIndex;
-                if (i >= 0 && i < _app.Widgets.Count) _app.RemoveWidget(_app.Widgets[i]);
+                if (i >= 0 && i < S.Widgets.Count) _app.RemoveZone(S.Widgets[i]);
             };
             var resetBtn = new Button(); resetBtn.Text = "Reset positions"; resetBtn.AutoSize = true; resetBtn.Width = 140;
             resetBtn.Click += delegate { _app.ResetPositions(); };
@@ -147,7 +185,8 @@ namespace TimeZoneWidgets
             AddRow(table, "Widgets", widgetsPanel);
 
             var tip = new Label();
-            tip.Text = "Tip: drag a widget to move it, double-click one to open these settings, right-click for its menu.";
+            tip.Text = "Tips: drag a widget to move it; drag the ribbon toward another screen edge to move it there, or drag its inner edge to resize it. Double-click either to open these settings; right-click for menus.";
+            tip.MaximumSize = new Size(540, 0);
             tip.AutoSize = true;
             tip.ForeColor = SystemColors.GrayText;
             tip.Margin = new Padding(3, 10, 3, 3);
@@ -250,9 +289,54 @@ namespace TimeZoneWidgets
             _globe.Checked = _app.GlobeVisible;
             _globeSpin.Checked = S.GlobeAutoRotate;
             _startup.Checked = StartupManager.IsEnabled();
+            RefreshLayout();
             RefreshSwatches();
             RefreshWidgetList();
             _loading = false;
+        }
+
+        static string EdgeFromIndex(int i)
+        {
+            switch (i)
+            {
+                case 1: return AppSettings.EdgeBottom;
+                case 2: return AppSettings.EdgeLeft;
+                case 3: return AppSettings.EdgeRight;
+                default: return AppSettings.EdgeTop;
+            }
+        }
+
+        static int IndexFromEdge(string edge)
+        {
+            if (edge == AppSettings.EdgeBottom) return 1;
+            if (edge == AppSettings.EdgeLeft) return 2;
+            if (edge == AppSettings.EdgeRight) return 3;
+            return 0;
+        }
+
+        /// <summary>Sync the layout / ribbon controls with the settings (after a change made elsewhere).</summary>
+        public void RefreshLayout()
+        {
+            bool was = _loading;
+            _loading = true;
+            bool ribbon = S.LayoutMode == AppSettings.LayoutRibbon;
+            _layoutFloating.Checked = !ribbon;
+            _layoutRibbon.Checked = ribbon;
+            _ribbonEdge.SelectedIndex = IndexFromEdge(S.RibbonEdge);
+            bool horizontal = S.RibbonEdge == AppSettings.EdgeTop || S.RibbonEdge == AppSettings.EdgeBottom;
+            int min = horizontal ? AppSettings.MinRibbonHeight : AppSettings.MinRibbonWidth;
+            int max = horizontal ? AppSettings.MaxRibbonHeight : AppSettings.MaxRibbonWidth;
+            _ribbonSize.Minimum = 0;
+            _ribbonSize.Maximum = max;
+            _ribbonSize.Minimum = min;
+            _ribbonSize.TickFrequency = horizontal ? 20 : 30;
+            _ribbonSize.Value = Math.Max(min, Math.Min(max, horizontal ? S.RibbonHeight : S.RibbonWidth));
+            _ribbonSizeLabel.Text = (horizontal ? "Height " : "Width ") + _ribbonSize.Value + " px";
+            _ribbonReserve.Checked = S.RibbonReserveSpace;
+            _ribbonEdge.Enabled = ribbon;
+            _ribbonSize.Enabled = ribbon;
+            _ribbonReserve.Enabled = ribbon;
+            _loading = was;
         }
 
         public void RefreshStartup()
@@ -295,8 +379,11 @@ namespace TimeZoneWidgets
             int selected = _widgetList.SelectedIndex;
             _widgetList.BeginUpdate();
             _widgetList.Items.Clear();
-            foreach (var w in _app.Widgets)
-                _widgetList.Items.Add(w.Config.Label + "  (" + ZoneCatalog.ShortDisplayName(w.TimeZone) + ", " + ZoneCatalog.FormatOffset(w.TimeZone.GetUtcOffset(DateTime.UtcNow)) + ")");
+            foreach (var cfg in S.Widgets)
+            {
+                var tz = _app.ZoneFor(cfg);
+                _widgetList.Items.Add(cfg.Label + "  (" + ZoneCatalog.ShortDisplayName(tz) + ", " + ZoneCatalog.FormatOffset(tz.GetUtcOffset(DateTime.UtcNow)) + ")");
+            }
             _widgetList.EndUpdate();
             if (selected >= 0 && selected < _widgetList.Items.Count) _widgetList.SelectedIndex = selected;
         }

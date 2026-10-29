@@ -6,6 +6,10 @@ database built into Windows and never touches the network.
 
 ![Clock widgets and the globe](docs/screenshot.png)
 
+Or dock every zone in one bar at the top, bottom, left or right of the screen:
+
+![Ribbon docked to the top edge](docs/ribbon.png)
+
 ## Features
 
 - **Any number of clock widgets**, each showing the city, the **day of the week, the date and the
@@ -18,6 +22,11 @@ database built into Windows and never touches the network.
   the 24 one-hour time-zone meridians, a highlighted meridian for every clock widget and a
   marker on each widget's city. It turns on its own; drag it to spin it yourself and it resumes
   after a few seconds. Shift+drag (or middle-drag) moves it.
+- **Ribbon layout**: instead of separate widgets, show all zones in one bar docked to the top,
+  bottom, left or right edge of the screen. Drag the bar toward another edge to move it there
+  (like the taskbar), drag its inner edge or use the slider to set its height/width, and
+  optionally reserve screen space so maximized windows sit next to it rather than under it.
+  It uses the same colors, size and transparency as the widgets.
 - **Size, color and transparency** settings. Sizes from 50% to 200%, opacity from 20% to 100%.
 - **Matches your wallpaper by default**: the app looks at the current desktop background and
   picks a dark glass panel on light wallpapers or a light panel on dark ones, and colors the
@@ -44,7 +53,7 @@ The exe is not code-signed, so SmartScreen may warn the first time; choose "More
 
 | Where | What |
 | --- | --- |
-| Tray icon (right-click) | Add widget, show/hide the globe, hide/show widgets, start with Windows, Settings, Exit |
+| Tray icon (right-click) | Add time zone, choose layout (floating / ribbon at an edge), show/hide the globe, hide/show widgets, start with Windows, Settings, Exit |
 | Tray icon (double-click) | Settings |
 | Widget (drag) | Move it |
 | Widget (double-click) | Settings |
@@ -52,6 +61,9 @@ The exe is not code-signed, so SmartScreen may warn the first time; choose "More
 | Globe (drag) | Spin it |
 | Globe (Shift+drag or middle-drag) | Move it |
 | Globe (right-click) | Auto-rotate on/off, reset view, hide globe |
+| Ribbon (drag) | Move it to the screen edge nearest the mouse |
+| Ribbon (drag its inner edge) | Change its height (top/bottom) or width (left/right) |
+| Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, reserve screen space, switch back to floating widgets |
 | Run the exe again | Opens Settings in the running instance |
 
 ## Building from source
@@ -85,6 +97,8 @@ src/            C# sources (WinForms, .NET Framework 4.8, no third-party package
   Program.cs          entry point, single-instance handling
   TrayApp.cs          tray icon, owns the widgets and the globe, wallpaper watcher
   WidgetForm.cs       one clock widget
+  RibbonForm.cs       the docked ribbon layout (all zones in one bar)
+  AppBar.cs           reserves screen space for the ribbon (SHAppBarMessage)
   GlobeForm.cs        the rotating day/night globe
   GlobeData.cs        embedded continent outlines + land mask
   LayeredWindow.cs    per-pixel-alpha window base class (UpdateLayeredWindow)

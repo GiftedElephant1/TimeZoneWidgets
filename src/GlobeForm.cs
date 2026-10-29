@@ -342,8 +342,8 @@ namespace TimeZoneWidgets
 
             // Meridians to highlight: one per clock widget, at its current UTC offset.
             var highlights = new List<double>();
-            foreach (var w in App.Widgets)
-                highlights.Add(w.TimeZone.GetUtcOffset(DateTime.UtcNow).TotalHours * 15.0);
+            foreach (var cfg in App.Settings.Widgets)
+                highlights.Add(App.ZoneFor(cfg).GetUtcOffset(DateTime.UtcNow).TotalHours * 15.0);
             var hl = highlights.ToArray();
 
             Color accent = T.Accent;
@@ -474,12 +474,12 @@ namespace TimeZoneWidgets
         {
             float px = Px;
             var seen = new HashSet<string>();
-            foreach (var w in App.Widgets)
+            foreach (var cfg in App.Settings.Widgets)
             {
-                var entry = ZoneCatalog.EntryFor(w.Config.TimeZoneId, w.Config.Label);
+                var entry = ZoneCatalog.EntryFor(cfg.TimeZoneId, cfg.Label);
                 double lat, lon;
                 if (entry != null) { lat = entry.Latitude; lon = entry.Longitude; }
-                else if (string.Equals(w.Config.TimeZoneId, TimeZoneInfo.Local.Id, StringComparison.OrdinalIgnoreCase)
+                else if (string.Equals(cfg.TimeZoneId, TimeZoneInfo.Local.Id, StringComparison.OrdinalIgnoreCase)
                          && ZoneCatalog.EntryFor(TimeZoneInfo.Local.Id, null) != null)
                 {
                     var e = ZoneCatalog.EntryFor(TimeZoneInfo.Local.Id, null);

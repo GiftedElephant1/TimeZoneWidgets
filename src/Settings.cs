@@ -23,6 +23,14 @@ namespace TimeZoneWidgets
         public const string LayerNormal = "normal";
         public const string LayerTop = "top";
         public const string LayerBottom = "bottom";
+        public const string LayoutFloating = "floating";
+        public const string LayoutRibbon = "ribbon";
+        public const string EdgeTop = "top";
+        public const string EdgeBottom = "bottom";
+        public const string EdgeLeft = "left";
+        public const string EdgeRight = "right";
+        public const int MinRibbonHeight = 34, MaxRibbonHeight = 240;
+        public const int MinRibbonWidth = 120, MaxRibbonWidth = 420;
 
         [DataMember(Order = 0)] public int Version { get; set; }
         [DataMember(Order = 1)] public bool Use24Hour { get; set; }
@@ -46,6 +54,14 @@ namespace TimeZoneWidgets
         [DataMember(Order = 14)] public bool GlobeAutoRotate { get; set; }
         [DataMember(Order = 15)] public int GlobeX { get; set; }
         [DataMember(Order = 16)] public int GlobeY { get; set; }
+        /// <summary>"floating" (separate widgets) or "ribbon" (one bar docked to a screen edge).</summary>
+        [DataMember(Order = 17)] public string LayoutMode { get; set; }
+        [DataMember(Order = 18)] public string RibbonEdge { get; set; }
+        /// <summary>Ribbon height (top/bottom) and width (left/right), in design pixels at 100% scale.</summary>
+        [DataMember(Order = 19)] public int RibbonHeight { get; set; }
+        [DataMember(Order = 20)] public int RibbonWidth { get; set; }
+        /// <summary>Register the ribbon as an appbar so other windows don't cover it.</summary>
+        [DataMember(Order = 21)] public bool RibbonReserveSpace { get; set; }
 
         public static string Directory
         {
@@ -77,6 +93,11 @@ namespace TimeZoneWidgets
             s.GlobeAutoRotate = true;
             s.GlobeX = -1;
             s.GlobeY = -1;
+            s.LayoutMode = LayoutFloating;
+            s.RibbonEdge = EdgeTop;
+            s.RibbonHeight = 84;
+            s.RibbonWidth = 210;
+            s.RibbonReserveSpace = true;
             return s;
         }
 
@@ -120,6 +141,7 @@ namespace TimeZoneWidgets
                 GlobeAutoRotate = true;
                 GlobeX = -1;
                 GlobeY = -1;
+                RibbonReserveSpace = true;
             }
             if (Scale < 50 || Scale > 200) Scale = d.Scale;
             if (Opacity <= 0) Opacity = d.Opacity;
@@ -130,6 +152,12 @@ namespace TimeZoneWidgets
             if (string.IsNullOrEmpty(AccentColor)) AccentColor = d.AccentColor;
             if (Layer != LayerTop && Layer != LayerBottom) Layer = LayerNormal;
             if (Widgets == null) Widgets = new List<WidgetConfig>();
+            if (LayoutMode != LayoutRibbon) LayoutMode = LayoutFloating;
+            if (RibbonEdge != EdgeBottom && RibbonEdge != EdgeLeft && RibbonEdge != EdgeRight) RibbonEdge = EdgeTop;
+            if (RibbonHeight <= 0) RibbonHeight = d.RibbonHeight;
+            if (RibbonWidth <= 0) RibbonWidth = d.RibbonWidth;
+            RibbonHeight = Math.Max(MinRibbonHeight, Math.Min(MaxRibbonHeight, RibbonHeight));
+            RibbonWidth = Math.Max(MinRibbonWidth, Math.Min(MaxRibbonWidth, RibbonWidth));
             Widgets.RemoveAll(delegate(WidgetConfig w) { return w == null || string.IsNullOrEmpty(w.TimeZoneId); });
         }
 

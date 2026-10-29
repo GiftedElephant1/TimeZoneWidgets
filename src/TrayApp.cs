@@ -9,8 +9,8 @@ using Microsoft.Win32;
 namespace TimeZoneWidgets
 {
     /// <summary>
-    /// The application: a tray icon that owns all widget windows, the globe, the settings dialog
-    /// and the wallpaper watcher. Nothing here needs a network connection.
+    /// The application: a tray icon that owns the clock widgets (or the docked ribbon), the globe,
+    /// the settings dialog and the wallpaper watcher. Nothing here needs a network connection.
     /// </summary>
     public class TrayApp : ApplicationContext
     {
@@ -21,11 +21,14 @@ namespace TimeZoneWidgets
 
         readonly List<WidgetForm> _widgets = new List<WidgetForm>();
         GlobeForm _globe;
+        RibbonForm _ribbon;
         readonly NotifyIcon _tray;
         readonly System.Windows.Forms.Timer _wallpaperPoll;
         string _wallpaperSignature;
         SettingsForm _settingsForm;
         ToolStripMenuItem _startupItem, _hideItem, _globeItem;
+        readonly List<ToolStripMenuItem> _layoutItems = new List<ToolStripMenuItem>();
+        readonly Dictionary<string, TimeZoneInfo> _zoneCache = new Dictionary<string, TimeZoneInfo>(StringComparer.OrdinalIgnoreCase);
         bool _hidden;
         bool _exiting;
 
@@ -44,7 +47,8 @@ namespace TimeZoneWidgets
             _tray.Visible = true;
 
             if (Settings.Widgets.Count == 0) AddDefaultWidgets();
-            foreach (var cfg in Settings.Widgets.ToArray()) CreateWidget(cfg);
+            if (RibbonMode) CreateRibbon();
+            else foreach (var cfg in Settings.Widgets.ToArray()) CreateWidget(cfg);
             if (Settings.ShowGlobe) CreateGlobe();
             LayOutUnplaced();
             Settings.Save();
@@ -61,10 +65,23 @@ namespace TimeZoneWidgets
             ListenForSecondInstance();
         }
 
-        // ---- widgets --------------------------------------------------------------------------
+        // ---- zones ----------------------------------------------------------------------------
 
         public IList<WidgetForm> Widgets { get { return _widgets.AsReadOnly(); } }
         public bool GlobeVisible { get { return _globe != null && !_globe.IsDisposed; } }
+        public bool RibbonMode { get { return Settings.LayoutMode == AppSettings.LayoutRibbon; } }
+
+        /// <summary>Resolve (and cache) the TimeZoneInfo for a configured zone.</summary>
+        public TimeZoneInfo ZoneFor(WidgetConfig cfg)
+        {
+            TimeZoneInfo tz;
+            if (!_zoneCache.TryGetValue(cfg.TimeZoneId ?? "", out tz))
+            {
+                tz = ZoneCatalog.Find(cfg.TimeZoneId);
+                _zoneCache[cfg.TimeZoneId ?? ""] = tz;
+            }
+            return tz;
+        }
 
         IEnumerable<LayeredWindow> AllWindows
         {
@@ -72,6 +89,7 @@ namespace TimeZoneWidgets
             {
                 foreach (var w in _widgets) yield return w;
                 if (GlobeVisible) yield return _globe;
+                if (_ribbon != null && !_ribbon.IsDisposed) yield return _ribbon;
             }
         }
 
@@ -97,6 +115,7 @@ namespace TimeZoneWidgets
             var w = new WidgetForm(this, cfg, Settings, Theme);
             _widgets.Add(w);
             w.Show();
+            if (_hidden) w.Hide();
             return w;
         }
 
@@ -108,7 +127,22 @@ namespace TimeZoneWidgets
             if (_hidden) _globe.Hide();
         }
 
-        /// <summary>Place windows that have no saved position (or whose monitor disappeared) in a column at the top-right.</summary>
+        void CreateRibbon()
+        {
+            if (_ribbon != null && !_ribbon.IsDisposed) return;
+            _ribbon = new RibbonForm(this, Settings, Theme);
+            _ribbon.Show();
+            if (_hidden) _ribbon.Hide();
+        }
+
+        void CloseRibbon()
+        {
+            if (_ribbon == null) return;
+            if (!_ribbon.IsDisposed) { _ribbon.Close(); _ribbon.Dispose(); }
+            _ribbon = null;
+        }
+
+        /// <summary>Place floating windows that have no saved position (or whose monitor disappeared) in a column at the top-right.</summary>
         void LayOutUnplaced()
         {
             var area = Screen.PrimaryScreen.WorkingArea;
@@ -116,10 +150,14 @@ namespace TimeZoneWidgets
             int nextY = area.Top + margin;
             // Start below any window already sitting in that column.
             foreach (var w in AllWindows)
+            {
+                if (w is RibbonForm) continue;
                 if (w.SavedX >= 0 && IsOnScreen(w.SavedX, w.SavedY) && w.SavedX > area.Right - w.Width - margin - 40)
                     nextY = Math.Max(nextY, w.SavedY + w.Height + gap);
+            }
             foreach (var w in AllWindows)
             {
+                if (w is RibbonForm) continue;
                 if (w.SavedX >= 0 && IsOnScreen(w.SavedX, w.SavedY)) continue;
                 if (nextY + w.Height > area.Bottom) nextY = area.Top + margin;
                 w.MoveTo(area.Right - w.Width - margin, nextY);
@@ -142,9 +180,15 @@ namespace TimeZoneWidgets
             cfg.X = -1;
             cfg.Y = -1;
             Settings.Widgets.Add(cfg);
-            var w = CreateWidget(cfg);
-            if (_hidden) w.Hide();
-            LayOutUnplaced();
+            if (RibbonMode)
+            {
+                if (_ribbon != null) _ribbon.ZonesChanged();
+            }
+            else
+            {
+                CreateWidget(cfg);
+                LayOutUnplaced();
+            }
             Settings.Save();
             ZonesChanged();
         }
@@ -157,8 +201,8 @@ namespace TimeZoneWidgets
             {
                 if (!ZoneCatalog.Exists(zone.WindowsId)) continue;
                 bool used = false;
-                foreach (var w in _widgets)
-                    if (string.Equals(w.Config.TimeZoneId, zone.WindowsId, StringComparison.OrdinalIgnoreCase)) { used = true; break; }
+                foreach (var c in Settings.Widgets)
+                    if (string.Equals(c.TimeZoneId, zone.WindowsId, StringComparison.OrdinalIgnoreCase)) { used = true; break; }
                 if (!used) { pick = zone; break; }
             }
             if (pick == null) pick = new ZoneEntry("UTC", "UTC", 0, 0);
@@ -179,22 +223,115 @@ namespace TimeZoneWidgets
             ZonesChanged();
         }
 
-        public void RemoveWidget(WidgetForm w)
+        WidgetForm FormFor(WidgetConfig cfg)
         {
-            _widgets.Remove(w);
-            Settings.Widgets.Remove(w.Config);
-            w.Close();
-            w.Dispose();
-            Settings.Save();
-            ZonesChanged();
-            if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.RefreshWidgetList();
+            foreach (var w in _widgets) if (w.Config == cfg) return w;
+            return null;
         }
 
-        /// <summary>Called whenever the set of zones changes, so the globe can move its markers.</summary>
+        public void ChangeZone(WidgetConfig cfg, string windowsId, string label)
+        {
+            var form = FormFor(cfg);
+            if (form != null)
+            {
+                form.SetTimeZone(windowsId, label);   // updates cfg, saves and calls ZonesChanged
+                return;
+            }
+            cfg.TimeZoneId = windowsId;
+            cfg.Label = string.IsNullOrEmpty(label) ? ZoneCatalog.LabelFor(windowsId) : label;
+            if (_ribbon != null) _ribbon.ZonesChanged();
+            Settings.Save();
+            ZonesChanged();
+        }
+
+        public void RenameZone(WidgetConfig cfg, string label)
+        {
+            var form = FormFor(cfg);
+            if (form != null) { form.Rename(label); }
+            else
+            {
+                cfg.Label = string.IsNullOrEmpty(label) ? ZoneCatalog.LabelFor(cfg.TimeZoneId) : label;
+                if (_ribbon != null) _ribbon.ZonesChanged();
+                Settings.Save();
+            }
+            ZonesChanged();
+        }
+
+        public void RemoveZone(WidgetConfig cfg)
+        {
+            Settings.Widgets.Remove(cfg);
+            var form = FormFor(cfg);
+            if (form != null)
+            {
+                _widgets.Remove(form);
+                form.Close();
+                form.Dispose();
+            }
+            if (_ribbon != null) _ribbon.ZonesChanged();
+            Settings.Save();
+            ZonesChanged();
+        }
+
+        public void RemoveWidget(WidgetForm w)
+        {
+            RemoveZone(w.Config);
+        }
+
+        /// <summary>Called whenever the set of zones changes, so the globe and the settings list follow.</summary>
         public void ZonesChanged()
         {
             if (GlobeVisible) _globe.RefreshMarkers();
             if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.RefreshWidgetList();
+        }
+
+        // ---- layout: floating widgets vs. docked ribbon ---------------------------------------
+
+        public void SetLayoutMode(string mode)
+        {
+            if (mode != AppSettings.LayoutRibbon) mode = AppSettings.LayoutFloating;
+            if (Settings.LayoutMode != mode)
+            {
+                Settings.LayoutMode = mode;
+                if (mode == AppSettings.LayoutRibbon)
+                {
+                    foreach (var w in _widgets.ToArray()) { w.Close(); w.Dispose(); }
+                    _widgets.Clear();
+                    CreateRibbon();
+                }
+                else
+                {
+                    CloseRibbon();
+                    foreach (var cfg in Settings.Widgets.ToArray()) CreateWidget(cfg);
+                    LayOutUnplaced();
+                }
+                Settings.Save();
+            }
+            RibbonEdgeChanged();
+        }
+
+        public void SetRibbonEdge(string edge)
+        {
+            Settings.RibbonEdge = edge;
+            if (Settings.LayoutMode != AppSettings.LayoutRibbon) { SetLayoutMode(AppSettings.LayoutRibbon); return; }
+            if (_ribbon != null) _ribbon.ApplySettings(Settings, Theme);
+            Settings.Save();
+            RibbonEdgeChanged();
+        }
+
+        /// <summary>Keeps the tray menu and the settings dialog in step after the ribbon moved (e.g. by dragging).</summary>
+        public void RibbonEdgeChanged()
+        {
+            UpdateLayoutChecks();
+            if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.RefreshLayout();
+        }
+
+        void UpdateLayoutChecks()
+        {
+            foreach (var item in _layoutItems)
+            {
+                var tag = (string)item.Tag;
+                item.Checked = tag == "floating" ? !RibbonMode : (RibbonMode && Settings.RibbonEdge == tag);
+            }
         }
 
         public void SetGlobeVisible(bool visible)
@@ -288,7 +425,10 @@ namespace TimeZoneWidgets
         void OnDisplaySettingsChanged(object sender, EventArgs e)
         {
             foreach (var w in AllWindows)
+            {
+                if (w is RibbonForm) { w.ApplySettings(Settings, Theme); continue; }
                 if (!IsOnScreen(w.SavedX, w.SavedY)) w.SavedX = -1;
+            }
             LayOutUnplaced();
         }
 
@@ -321,6 +461,7 @@ namespace TimeZoneWidgets
             _tray.Dispose();
             foreach (var w in _widgets.ToArray()) { w.Close(); w.Dispose(); }
             _widgets.Clear();
+            CloseRibbon();
             if (GlobeVisible) { _globe.Close(); _globe.Dispose(); _globe = null; }
             if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.Close();
             ExitThread();
@@ -338,25 +479,28 @@ namespace TimeZoneWidgets
             menu.Items.Add(header);
             menu.Items.Add(new ToolStripSeparator());
 
-            var add = new ToolStripMenuItem("Add widget");
-            foreach (var region in ZoneCatalog.Regions)
-            {
-                var regionItem = new ToolStripMenuItem(region.Name);
-                foreach (var zone in region.Zones)
-                {
-                    if (!ZoneCatalog.Exists(zone.WindowsId)) continue;
-                    var z = zone;
-                    var item = new ToolStripMenuItem(zone.City);
-                    item.Click += delegate { AddWidget(z.WindowsId, z.City); };
-                    regionItem.DropDownItems.Add(item);
-                }
-                add.DropDownItems.Add(regionItem);
-            }
-            var local = new ToolStripMenuItem("Local time");
-            local.Click += delegate { AddWidget(TimeZoneInfo.Local.Id, "Local"); };
-            add.DropDownItems.Add(new ToolStripSeparator());
-            add.DropDownItems.Add(local);
+            var add = new ToolStripMenuItem("Add time zone");
+            ZoneMenus.Fill(add, delegate(string id, string label) { AddWidget(id, label); });
             menu.Items.Add(add);
+
+            var layout = new ToolStripMenuItem("Layout");
+            foreach (var pair in new[] { new[] { "Floating widgets", "floating" }, new[] { "Ribbon at the top", AppSettings.EdgeTop },
+                                         new[] { "Ribbon at the bottom", AppSettings.EdgeBottom }, new[] { "Ribbon on the left", AppSettings.EdgeLeft },
+                                         new[] { "Ribbon on the right", AppSettings.EdgeRight } })
+            {
+                var tag = pair[1];
+                var item = new ToolStripMenuItem(pair[0]);
+                item.Tag = tag;
+                item.Click += delegate
+                {
+                    if (tag == "floating") SetLayoutMode(AppSettings.LayoutFloating);
+                    else SetRibbonEdge(tag);
+                };
+                _layoutItems.Add(item);
+                layout.DropDownItems.Add(item);
+                if (tag == "floating") layout.DropDownItems.Add(new ToolStripSeparator());
+            }
+            menu.Items.Add(layout);
 
             _globeItem = new ToolStripMenuItem("Show globe");
             _globeItem.CheckOnClick = true;
@@ -391,6 +535,7 @@ namespace TimeZoneWidgets
             {
                 _startupItem.Checked = StartupManager.IsEnabled();
                 _globeItem.Checked = GlobeVisible;
+                UpdateLayoutChecks();
             };
             return menu;
         }
