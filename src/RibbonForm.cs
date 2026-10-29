@@ -50,10 +50,11 @@ namespace TimeZoneWidgets
         DateTime _lastSeen = DateTime.MinValue;
         const int HideDelayMs = 700;
 
-        public RibbonForm(TrayApp app, AppSettings settings, Theme theme)
+        public RibbonForm(TrayApp app, AppSettings settings, Theme theme, string screenDevice)
             : base(app)
         {
             Text = "Time zone ribbon";
+            ScreenDevice = screenDevice ?? "";
             Size = new Size(600, 80);
             _timer = new Timer();
             _timer.Interval = 1000;
@@ -65,6 +66,19 @@ namespace TimeZoneWidgets
         }
 
         bool AutoHide { get { return S != null && S.RibbonAutoHide; } }
+
+        /// <summary>Device name (Screen.DeviceName) of the monitor this bar docks to.</summary>
+        public string ScreenDevice { get; private set; }
+
+        /// <summary>The monitor this bar docks to; the primary one if that monitor is gone.</summary>
+        public Screen TargetScreen
+        {
+            get
+            {
+                foreach (var s in Screen.AllScreens) if (s.DeviceName == ScreenDevice) return s;
+                return Screen.PrimaryScreen;
+            }
+        }
 
         // An auto-hiding bar must be able to slide over other windows, so it is always on top and
         // never pinned to the desktop while auto-hide is on.
@@ -160,7 +174,7 @@ namespace TimeZoneWidgets
         /// somewhere along the ribbon's length.</summary>
         bool AtEdge(Point p)
         {
-            var screen = Screen.PrimaryScreen.Bounds;
+            var screen = TargetScreen.Bounds;
             switch (Edge)
             {
                 case AppSettings.EdgeTop: return p.Y <= screen.Top + 1 && p.X >= _shown.Left && p.X < _shown.Right;
@@ -259,19 +273,29 @@ namespace TimeZoneWidgets
                 var p = Cursor.Position;
                 int dx = p.X - _dragStart.X, dy = p.Y - _dragStart.Y;
                 if (dx * dx + dy * dy < EdgeDragThreshold * EdgeDragThreshold) return;
-                var bounds = Screen.PrimaryScreen.Bounds;
+                // The bar follows the mouse: the nearest edge of whichever monitor the mouse is on.
+                var under = Screen.FromPoint(p);
+                var bounds = under.Bounds;
                 int dTop = p.Y - bounds.Top, dBottom = bounds.Bottom - p.Y, dLeft = p.X - bounds.Left, dRight = bounds.Right - p.X;
                 string edge = AppSettings.EdgeTop;
                 int best = dTop;
                 if (dBottom < best) { best = dBottom; edge = AppSettings.EdgeBottom; }
                 if (dLeft < best) { best = dLeft; edge = AppSettings.EdgeLeft; }
                 if (dRight < best) { best = dRight; edge = AppSettings.EdgeRight; }
-                if (edge != Edge)
+                bool movedMonitor = !S.RibbonAllMonitors && under.DeviceName != TargetScreen.DeviceName;
+                if (edge != Edge || movedMonitor)
                 {
                     S.RibbonEdge = edge;
+                    if (movedMonitor)
+                    {
+                        // Carry this very window over so the drag continues seamlessly; the tray app
+                        // then drops any bar left on the old monitor.
+                        ScreenDevice = under.DeviceName;
+                        S.RibbonMonitor = under.DeviceName;
+                    }
                     Relayout();
                     Render(true);
-                    App.RibbonEdgeChanged();
+                    if (movedMonitor) App.RibbonMovedToMonitor(under.DeviceName); else App.RibbonEdgeChanged();
                 }
                 return;
             }
@@ -354,6 +378,29 @@ namespace TimeZoneWidgets
                 position.DropDownItems.Add(item);
             }
             menu.Items.Add(position);
+
+            var screens = Screen.AllScreens;
+            if (screens.Length > 1)
+            {
+                var monitor = new ToolStripMenuItem("Monitor");
+                for (int i = 0; i < screens.Length; i++)
+                {
+                    var scr = screens[i];
+                    var item = new ToolStripMenuItem(TrayApp.DescribeScreen(scr, i));
+                    item.Checked = !S.RibbonAllMonitors && scr.DeviceName == TargetScreen.DeviceName;
+                    item.Click += delegate { App.SetRibbonMonitor(scr.DeviceName); };
+                    monitor.DropDownItems.Add(item);
+                }
+                var allMon = new ToolStripMenuItem("All monitors");
+                allMon.Checked = S.RibbonAllMonitors;
+                allMon.Click += delegate { App.SetRibbonAllMonitors(!S.RibbonAllMonitors); };
+                monitor.DropDownItems.Add(allMon);
+                monitor.DropDownItems.Add(new ToolStripSeparator());
+                var dragHint = new ToolStripMenuItem("Tip: drag the bar onto another monitor to move it there");
+                dragHint.Enabled = false;
+                monitor.DropDownItems.Add(dragHint);
+                menu.Items.Add(monitor);
+            }
 
             var overlay = new ToolStripMenuItem("Overlay the screen (don't reserve space)");
             overlay.Checked = !S.RibbonReserveSpace;
@@ -478,7 +525,7 @@ namespace TimeZoneWidgets
 
         Rectangle TargetBounds()
         {
-            var screen = Screen.PrimaryScreen;
+            var screen = TargetScreen;
             int thickness = (int)Math.Round(ThicknessDesign * Px);
             if (S.RibbonReserveSpace && !S.RibbonAutoHide && _appBar != null)
             {

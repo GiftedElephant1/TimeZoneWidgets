@@ -36,6 +36,9 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   screen space" to have maximized windows sit next to it like they do with the taskbar, or
   **Auto-hide** to have it slide away (leaving a thin accent line) and pop back whenever the
   mouse touches that edge of the screen, exactly like the taskbar's auto-hide.
+  With several monitors, pick the one it docks to (or "All monitors" for a bar on each) in
+  Settings or the ribbon menu, or simply drag the bar onto another monitor: it moves there and
+  leaves the first monitor.
   It uses the same colors, size and transparency as the widgets.
 - **Size, color and transparency** settings. Sizes from 50% to 200%, opacity from 20% to 100%.
 - **Matches your wallpaper by default**: the app looks at the current desktop background and
@@ -73,7 +76,7 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Globe (drag) | Turn it |
 | Globe (Shift+drag or middle-drag) | Move it |
 | Globe (right-click) | Turn with the time of day on/off, reset view, hide globe |
-| Ribbon (drag) | Move it to the screen edge nearest the mouse |
+| Ribbon (drag) | Move it to the nearest edge of whichever monitor the mouse is on |
 | Ribbon (drag its inner edge) | Change its height (top/bottom) or width (left/right) |
 | Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, overlay the screen or reserve space like the taskbar, auto-hide, city codes, switch back to floating widgets |
 | Ribbon (auto-hide on) | Touch the screen edge it lives on to bring it back; it hides again when the mouse leaves |

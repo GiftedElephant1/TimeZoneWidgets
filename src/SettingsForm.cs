@@ -22,6 +22,7 @@ namespace TimeZoneWidgets
         TrackBar _ribbonSize;
         Label _ribbonSizeLabel;
         CheckBox _ribbonReserve, _ribbonCodes, _ribbonAutoHide;
+        ComboBox _ribbonMonitor;
 
         AppSettings S { get { return _app.Settings; } }
 
@@ -107,6 +108,19 @@ namespace TimeZoneWidgets
             _ribbonReserve.Margin = new Padding(14, 6, 3, 3);
             ribbonRow.Controls.Add(edgeLabel); ribbonRow.Controls.Add(_ribbonEdge); ribbonRow.Controls.Add(_ribbonReserve);
             AddRow(table, "Ribbon", ribbonRow);
+            var monitorRow = Flow();
+            var monitorLabel = new Label(); monitorLabel.Text = "Monitor:"; monitorLabel.AutoSize = true; monitorLabel.Margin = new Padding(3, 8, 3, 0);
+            _ribbonMonitor = new ComboBox(); _ribbonMonitor.DropDownStyle = ComboBoxStyle.DropDownList; _ribbonMonitor.Width = 260;
+            _ribbonMonitor.SelectedIndexChanged += delegate
+            {
+                if (_loading || _ribbonMonitor.SelectedIndex < 0) return;
+                var screens = Screen.AllScreens;
+                if (_ribbonMonitor.SelectedIndex >= screens.Length) _app.SetRibbonAllMonitors(true);
+                else _app.SetRibbonMonitor(screens[_ribbonMonitor.SelectedIndex].DeviceName);
+            };
+            var monitorHint = new Label(); monitorHint.Text = "(or drag the bar onto another monitor)"; monitorHint.AutoSize = true; monitorHint.Margin = new Padding(6, 8, 3, 0);
+            monitorRow.Controls.Add(monitorLabel); monitorRow.Controls.Add(_ribbonMonitor); monitorRow.Controls.Add(monitorHint);
+            AddRow(table, "", monitorRow);
             _ribbonCodes = Check("Show 3-letter city codes on the ribbon (NYC, TPE, AMS)", delegate { S.RibbonCityCodes = _ribbonCodes.Checked; Apply(); });
             AddRow(table, "", _ribbonCodes);
             _ribbonAutoHide = Check("Auto-hide: slide off-screen, reappear when the mouse touches that edge", delegate { S.RibbonAutoHide = _ribbonAutoHide.Checked; Apply(); RefreshLayout(); });
@@ -339,6 +353,20 @@ namespace TimeZoneWidgets
             _ribbonReserve.Checked = !S.RibbonReserveSpace;
             _ribbonCodes.Checked = S.RibbonCityCodes;
             _ribbonAutoHide.Checked = S.RibbonAutoHide;
+            var screens = Screen.AllScreens;
+            _ribbonMonitor.Items.Clear();
+            int selected = -1;
+            for (int i = 0; i < screens.Length; i++)
+            {
+                _ribbonMonitor.Items.Add(TrayApp.DescribeScreen(screens[i], i));
+                if (screens[i].DeviceName == S.RibbonMonitor) selected = i;
+                if (selected < 0 && screens[i].Primary && string.IsNullOrEmpty(S.RibbonMonitor)) selected = i;
+            }
+            _ribbonMonitor.Items.Add("All monitors");
+            if (S.RibbonAllMonitors) selected = screens.Length;
+            if (selected < 0) { for (int i = 0; i < screens.Length; i++) if (screens[i].Primary) selected = i; }
+            _ribbonMonitor.SelectedIndex = Math.Max(0, selected);
+            _ribbonMonitor.Enabled = ribbon && screens.Length > 1;
             _ribbonEdge.Enabled = ribbon;
             _ribbonSize.Enabled = ribbon;
             _ribbonReserve.Enabled = ribbon && !S.RibbonAutoHide;

@@ -21,7 +21,7 @@ namespace TimeZoneWidgets
 
         readonly List<WidgetForm> _widgets = new List<WidgetForm>();
         GlobeForm _globe;
-        RibbonForm _ribbon;
+        readonly List<RibbonForm> _ribbons = new List<RibbonForm>();   // one per monitor it is shown on
         readonly NotifyIcon _tray;
         readonly System.Windows.Forms.Timer _wallpaperPoll;
         string _wallpaperSignature;
@@ -47,7 +47,7 @@ namespace TimeZoneWidgets
             _tray.Visible = true;
 
             if (Settings.Widgets.Count == 0) AddDefaultWidgets();
-            if (RibbonMode) CreateRibbon();
+            if (RibbonMode) CreateRibbons();
             else foreach (var cfg in Settings.Widgets.ToArray()) CreateWidget(cfg);
             if (Settings.ShowGlobe) CreateGlobe();
             LayOutUnplaced();
@@ -89,7 +89,7 @@ namespace TimeZoneWidgets
             {
                 foreach (var w in _widgets) yield return w;
                 if (GlobeVisible) yield return _globe;
-                if (_ribbon != null && !_ribbon.IsDisposed) yield return _ribbon;
+                foreach (var r in _ribbons) if (!r.IsDisposed) yield return r;
             }
         }
 
@@ -127,19 +127,79 @@ namespace TimeZoneWidgets
             if (_hidden) _globe.Hide();
         }
 
-        void CreateRibbon()
+        /// <summary>The monitors the ribbon should be on: every monitor, or the chosen one (falling
+        /// back to the primary monitor when the chosen one is not connected right now).</summary>
+        List<Screen> RibbonTargets()
         {
-            if (_ribbon != null && !_ribbon.IsDisposed) return;
-            _ribbon = new RibbonForm(this, Settings, Theme);
-            _ribbon.Show();
-            if (_hidden) _ribbon.Hide();
+            var list = new List<Screen>();
+            if (Settings.RibbonAllMonitors) { list.AddRange(Screen.AllScreens); return list; }
+            foreach (var s in Screen.AllScreens)
+                if (!string.IsNullOrEmpty(Settings.RibbonMonitor) && s.DeviceName == Settings.RibbonMonitor) { list.Add(s); return list; }
+            list.Add(Screen.PrimaryScreen);
+            return list;
         }
 
-        void CloseRibbon()
+        /// <summary>Make the set of ribbon windows match the monitors they should be on.</summary>
+        void CreateRibbons()
         {
-            if (_ribbon == null) return;
-            if (!_ribbon.IsDisposed) { _ribbon.Close(); _ribbon.Dispose(); }
-            _ribbon = null;
+            var targets = RibbonTargets();
+            foreach (var r in _ribbons.ToArray())
+            {
+                bool wanted = false;
+                foreach (var s in targets) if (!r.IsDisposed && s.DeviceName == r.ScreenDevice) { wanted = true; break; }
+                if (!wanted) { _ribbons.Remove(r); if (!r.IsDisposed) { r.Close(); r.Dispose(); } }
+            }
+            foreach (var s in targets)
+            {
+                bool have = false;
+                foreach (var r in _ribbons) if (r.ScreenDevice == s.DeviceName) { have = true; break; }
+                if (have) continue;
+                var ribbon = new RibbonForm(this, Settings, Theme, s.DeviceName);
+                _ribbons.Add(ribbon);
+                ribbon.Show();
+                if (_hidden) ribbon.Hide();
+            }
+        }
+
+        void CloseRibbons()
+        {
+            foreach (var r in _ribbons) if (!r.IsDisposed) { r.Close(); r.Dispose(); }
+            _ribbons.Clear();
+        }
+
+        /// <summary>"Monitor 2 (primary), 1920×1080" for menus and the settings dialog.</summary>
+        public static string DescribeScreen(Screen s, int index)
+        {
+            return "Monitor " + (index + 1) + (s.Primary ? " (primary), " : ", ") + s.Bounds.Width + "×" + s.Bounds.Height;
+        }
+
+        /// <summary>Dock the ribbon to one monitor (and stop showing it on the others).</summary>
+        public void SetRibbonMonitor(string deviceName)
+        {
+            Settings.RibbonMonitor = deviceName ?? "";
+            Settings.RibbonAllMonitors = false;
+            if (Settings.LayoutMode != AppSettings.LayoutRibbon) { SetLayoutMode(AppSettings.LayoutRibbon); return; }
+            CreateRibbons();
+            Settings.Save();
+            RibbonEdgeChanged();
+        }
+
+        public void SetRibbonAllMonitors(bool all)
+        {
+            Settings.RibbonAllMonitors = all;
+            if (Settings.LayoutMode != AppSettings.LayoutRibbon) { SetLayoutMode(AppSettings.LayoutRibbon); return; }
+            CreateRibbons();
+            Settings.Save();
+            RibbonEdgeChanged();
+        }
+
+        /// <summary>A ribbon was dragged onto another monitor: remember it and drop the old window.</summary>
+        public void RibbonMovedToMonitor(string deviceName)
+        {
+            Settings.RibbonMonitor = deviceName ?? "";
+            CreateRibbons();
+            Settings.Save();
+            RibbonEdgeChanged();
         }
 
         /// <summary>Place floating windows that have no saved position (or whose monitor disappeared) in a column at the top-right.</summary>
@@ -182,7 +242,7 @@ namespace TimeZoneWidgets
             Settings.Widgets.Add(cfg);
             if (RibbonMode)
             {
-                if (_ribbon != null) _ribbon.ZonesChanged();
+                foreach (var r in _ribbons) if (!r.IsDisposed) r.ZonesChanged();
             }
             else
             {
@@ -239,7 +299,7 @@ namespace TimeZoneWidgets
             }
             cfg.TimeZoneId = windowsId;
             cfg.Label = string.IsNullOrEmpty(label) ? ZoneCatalog.LabelFor(windowsId) : label;
-            if (_ribbon != null) _ribbon.ZonesChanged();
+            foreach (var r in _ribbons) if (!r.IsDisposed) r.ZonesChanged();
             Settings.Save();
             ZonesChanged();
         }
@@ -251,7 +311,7 @@ namespace TimeZoneWidgets
             else
             {
                 cfg.Label = string.IsNullOrEmpty(label) ? ZoneCatalog.LabelFor(cfg.TimeZoneId) : label;
-                if (_ribbon != null) _ribbon.ZonesChanged();
+                foreach (var r in _ribbons) if (!r.IsDisposed) r.ZonesChanged();
                 Settings.Save();
             }
             ZonesChanged();
@@ -267,7 +327,7 @@ namespace TimeZoneWidgets
                 form.Close();
                 form.Dispose();
             }
-            if (_ribbon != null) _ribbon.ZonesChanged();
+            foreach (var r in _ribbons) if (!r.IsDisposed) r.ZonesChanged();
             Settings.Save();
             ZonesChanged();
         }
@@ -296,11 +356,11 @@ namespace TimeZoneWidgets
                 {
                     foreach (var w in _widgets.ToArray()) { w.Close(); w.Dispose(); }
                     _widgets.Clear();
-                    CreateRibbon();
+                    CreateRibbons();
                 }
                 else
                 {
-                    CloseRibbon();
+                    CloseRibbons();
                     foreach (var cfg in Settings.Widgets.ToArray()) CreateWidget(cfg);
                     LayOutUnplaced();
                 }
@@ -313,14 +373,15 @@ namespace TimeZoneWidgets
         {
             Settings.RibbonEdge = edge;
             if (Settings.LayoutMode != AppSettings.LayoutRibbon) { SetLayoutMode(AppSettings.LayoutRibbon); return; }
-            if (_ribbon != null) _ribbon.ApplySettings(Settings, Theme);
             Settings.Save();
             RibbonEdgeChanged();
         }
 
-        /// <summary>Keeps the tray menu and the settings dialog in step after the ribbon moved (e.g. by dragging).</summary>
+        /// <summary>Keeps every ribbon, the tray menu and the settings dialog in step after the
+        /// ribbon's edge or monitor changed (from a menu, the dialog, or by dragging a bar).</summary>
         public void RibbonEdgeChanged()
         {
+            foreach (var r in _ribbons) if (!r.IsDisposed) r.ApplySettings(Settings, Theme);
             UpdateLayoutChecks();
             if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.RefreshLayout();
         }
@@ -424,6 +485,7 @@ namespace TimeZoneWidgets
 
         void OnDisplaySettingsChanged(object sender, EventArgs e)
         {
+            if (RibbonMode) CreateRibbons();   // a monitor may have been plugged in or removed
             foreach (var w in AllWindows)
             {
                 if (w is RibbonForm) { w.ApplySettings(Settings, Theme); continue; }
@@ -461,7 +523,7 @@ namespace TimeZoneWidgets
             _tray.Dispose();
             foreach (var w in _widgets.ToArray()) { w.Close(); w.Dispose(); }
             _widgets.Clear();
-            CloseRibbon();
+            CloseRibbons();
             if (GlobeVisible) { _globe.Close(); _globe.Dispose(); _globe = null; }
             if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.Close();
             ExitThread();

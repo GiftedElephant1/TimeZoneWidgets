@@ -72,6 +72,10 @@ namespace TimeZoneWidgets
         /// <summary>Slide the ribbon off-screen (leaving a thin line) and bring it back when the mouse
         /// touches that screen edge, like the taskbar's auto-hide. Implies overlay and always-on-top.</summary>
         [DataMember(Order = 23)] public bool RibbonAutoHide { get; set; }
+        /// <summary>Device name of the monitor the ribbon docks to (Screen.DeviceName); empty = primary.</summary>
+        [DataMember(Order = 24)] public string RibbonMonitor { get; set; }
+        /// <summary>Show a ribbon on every monitor instead of just one.</summary>
+        [DataMember(Order = 25)] public bool RibbonAllMonitors { get; set; }
 
         public static string Directory
         {
@@ -110,6 +114,8 @@ namespace TimeZoneWidgets
             s.RibbonReserveSpace = false;
             s.RibbonCityCodes = true;
             s.RibbonAutoHide = false;
+            s.RibbonMonitor = "";
+            s.RibbonAllMonitors = false;
             return s;
         }
 
@@ -180,6 +186,7 @@ namespace TimeZoneWidgets
             if (Widgets == null) Widgets = new List<WidgetConfig>();
             if (LayoutMode != LayoutRibbon) LayoutMode = LayoutFloating;
             if (RibbonEdge != EdgeBottom && RibbonEdge != EdgeLeft && RibbonEdge != EdgeRight) RibbonEdge = EdgeTop;
+            if (RibbonMonitor == null) RibbonMonitor = "";
             if (RibbonHeight <= 0) RibbonHeight = d.RibbonHeight;
             if (RibbonWidth <= 0) RibbonWidth = d.RibbonWidth;
             RibbonHeight = Math.Max(MinRibbonHeight, Math.Min(MaxRibbonHeight, RibbonHeight));
