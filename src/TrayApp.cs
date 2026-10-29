@@ -337,6 +337,28 @@ namespace TimeZoneWidgets
             RemoveZone(w.Config);
         }
 
+        /// <summary>Moves a zone to a new position in the list (the order the ribbon and the
+        /// settings list show them in). Returns the index it ended up at.</summary>
+        public int MoveZoneTo(WidgetConfig cfg, int index)
+        {
+            int from = Settings.Widgets.IndexOf(cfg);
+            if (from < 0) return -1;
+            index = Math.Max(0, Math.Min(Settings.Widgets.Count - 1, index));
+            if (index == from) return from;
+            Settings.Widgets.RemoveAt(from);
+            Settings.Widgets.Insert(index, cfg);
+            foreach (var r in _ribbons) if (!r.IsDisposed) r.ZonesChanged();
+            Settings.Save();
+            ZonesChanged();
+            return index;
+        }
+
+        /// <summary>Moves a zone up (delta -1) or down (delta +1) in the list.</summary>
+        public int MoveZone(WidgetConfig cfg, int delta)
+        {
+            return MoveZoneTo(cfg, Settings.Widgets.IndexOf(cfg) + delta);
+        }
+
         /// <summary>Called whenever the set of zones changes, so the globe and the settings list follow.</summary>
         public void ZonesChanged()
         {

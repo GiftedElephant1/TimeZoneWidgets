@@ -51,6 +51,7 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
 - Window layer: normal, always on top, or **pinned to the desktop behind other windows**.
 - Drag widgets anywhere, lock their positions, rename them, add or remove them from the tray
   icon, a widget's right-click menu or the Settings window. Double-click a widget to open Settings.
+- **Reorder zones** by dragging a zone along the ribbon or with the ▲ Up / ▼ Down buttons in Settings.
 - Per-monitor DPI aware, multi-monitor friendly, tiny (a single ~120 KB exe).
 
 ## Download
@@ -78,7 +79,8 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Globe (drag) | Turn it |
 | Globe (Shift+drag or middle-drag) | Move it |
 | Globe (right-click) | Turn with the time of day on/off, reset view, hide globe |
-| Ribbon (drag) | Move it to the nearest edge of whichever monitor the mouse is on |
+| Ribbon (drag a zone along the bar) | Reorder the zones (the Settings window has ▲ Up / ▼ Down buttons too) |
+| Ribbon (drag away from the bar) | Move it to the nearest edge of whichever monitor the mouse is on |
 | Ribbon (drag its inner edge) | Change its height (top/bottom) or width (left/right) |
 | Ribbon (right-click) | Change/rename/remove the zone under the mouse, add a zone, pick the edge, overlay the screen or reserve space like the taskbar, auto-hide, city codes, switch back to floating widgets |
 | Ribbon (auto-hide on) | Touch the screen edge it lives on to bring it back; it hides again when the mouse leaves |

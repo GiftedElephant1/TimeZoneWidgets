@@ -41,6 +41,9 @@ namespace TimeZoneWidgets
         bool _singleRow;
 
         bool _resizing, _edgeDrag, _menuOpen;
+        bool _pendingDrag, _reorder;   // left button down, not yet decided / dragging a zone along the bar
+        WidgetConfig _dragCfg;         // the zone under the mouse when the drag started
+        const int ReorderThreshold = 12;
         Point _dragStart;
 
         // Auto-hide: the bar's full ("shown") bounds, and how far it is currently slid off-screen.
@@ -191,7 +194,7 @@ namespace TimeZoneWidgets
 
             var now = DateTime.UtcNow;
             var p = Cursor.Position;
-            bool wanted = _menuOpen || _resizing || _edgeDrag || AtEdge(p) || Bounds.Contains(p);
+            bool wanted = _menuOpen || _resizing || _edgeDrag || _reorder || _pendingDrag || AtEdge(p) || Bounds.Contains(p);
             if (wanted) _lastSeen = now;
             int target = (wanted || (now - _lastSeen).TotalMilliseconds < HideDelayMs) ? 0 : HiddenSlide;
             if (target == _slide) return;
@@ -268,6 +271,28 @@ namespace TimeZoneWidgets
                 }
                 return;
             }
+            if (_pendingDrag)
+            {
+                // Decide what a left-drag means: along the bar on a zone = reorder it; away from
+                // the bar = move the whole bar to another edge or monitor.
+                var p = Cursor.Position;
+                int dx = p.X - _dragStart.X, dy = p.Y - _dragStart.Y;
+                int along = Horizontal ? dx : dy, across = Horizontal ? dy : dx;
+                if (Math.Abs(across) >= EdgeDragThreshold) { _pendingDrag = false; _edgeDrag = true; }
+                else if (_dragCfg != null && Math.Abs(along) >= ReorderThreshold) { _pendingDrag = false; _reorder = true; Render(true); }
+                else return;
+            }
+            if (_reorder)
+            {
+                var over = CellAt(e.Location);
+                if (over != null && over.Config != _dragCfg)
+                {
+                    int to = S.Widgets.IndexOf(over.Config);
+                    App.MoveZoneTo(_dragCfg, to);   // rebuilds the cells on every ribbon
+                    Render(true);
+                }
+                return;
+            }
             if (_edgeDrag)
             {
                 var p = Cursor.Position;
@@ -310,16 +335,27 @@ namespace TimeZoneWidgets
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left || S.LockPositions) return;
             if (InResizeBand(e.Location)) _resizing = true;
-            else { _edgeDrag = true; _dragStart = Cursor.Position; }
+            else
+            {
+                _pendingDrag = true;
+                _dragStart = Cursor.Position;
+                var cell = CellAt(e.Location);
+                _dragCfg = cell != null ? cell.Config : null;
+            }
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (_resizing || _edgeDrag)
+            if (_resizing || _edgeDrag || _reorder || _pendingDrag)
             {
+                bool redraw = _reorder;
                 _resizing = false;
                 _edgeDrag = false;
+                _reorder = false;
+                _pendingDrag = false;
+                _dragCfg = null;
+                if (redraw) Render(true);
                 App.SaveSettings();
             }
             if (e.Button == MouseButtons.Right) ShowMenu(e.Location);
@@ -328,7 +364,7 @@ namespace TimeZoneWidgets
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-            if (e.Button == MouseButtons.Left) { _edgeDrag = false; _resizing = false; App.ShowSettings(); }
+            if (e.Button == MouseButtons.Left) { _edgeDrag = false; _resizing = false; _reorder = false; _pendingDrag = false; _dragCfg = null; App.ShowSettings(); }
         }
 
         Cell CellAt(Point p)
@@ -681,6 +717,7 @@ namespace TimeZoneWidgets
                             g.DrawLine(sep, x - gap, h * 0.2f, x - gap, h * 0.8f);
                         }
                         c.Bounds = new Rectangle((int)(x - gap), 0, (int)(widths[i] + 2 * gap), h);
+                        if (_reorder && c.Config == _dragCfg) using (var hl = new SolidBrush(Color.FromArgb(55, t.Accent))) g.FillRectangle(hl, c.Bounds);
                         if (_singleRow)
                         {
                             float cy = h / 2f;
@@ -747,6 +784,7 @@ namespace TimeZoneWidgets
                         if (i > 0) g.DrawLine(sep, padX, y, w - padX, y);
                         float cy = y + padY;
                         c.Bounds = new Rectangle(0, (int)y, w, (int)(contentH + 2 * padY));
+                        if (_reorder && c.Config == _dragCfg) using (var hl = new SolidBrush(Color.FromArgb(55, t.Accent))) g.FillRectangle(hl, c.Bounds);
                         g.DrawString(c.Label, _fLabel, text, padX, cy, sf);
                         float offW = W(g, c.Offset, _fSmall, sf);
                         float glyphW = W(g, c.Glyph, _fGlyph, sf);

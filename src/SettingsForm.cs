@@ -198,12 +198,18 @@ namespace TimeZoneWidgets
             };
             var resetBtn = new Button(); resetBtn.Text = "Reset positions"; resetBtn.AutoSize = true; resetBtn.Width = 140;
             resetBtn.Click += delegate { _app.ResetPositions(); };
-            buttons.Controls.Add(addBtn); buttons.Controls.Add(removeBtn); buttons.Controls.Add(resetBtn);
+            var upDown = new FlowLayoutPanel(); upDown.AutoSize = true; upDown.Margin = new Padding(0);
+            var upBtn = new Button(); upBtn.Text = "▲ Up"; upBtn.AutoSize = true; upBtn.Width = 67; upBtn.Margin = new Padding(3, 3, 0, 3);
+            var downBtn = new Button(); downBtn.Text = "▼ Down"; downBtn.AutoSize = true; downBtn.Width = 67; downBtn.Margin = new Padding(3, 3, 3, 3);
+            upBtn.Click += delegate { MoveSelected(-1); };
+            downBtn.Click += delegate { MoveSelected(+1); };
+            upDown.Controls.Add(upBtn); upDown.Controls.Add(downBtn);
+            buttons.Controls.Add(addBtn); buttons.Controls.Add(removeBtn); buttons.Controls.Add(upDown); buttons.Controls.Add(resetBtn);
             widgetsPanel.Controls.Add(buttons);
             AddRow(table, "Widgets", widgetsPanel);
 
             var tip = new Label();
-            tip.Text = "Tips: drag a widget to move it; drag the ribbon toward another screen edge to move it there, or drag its inner edge to resize it. Double-click either to open these settings; right-click for menus.";
+            tip.Text = "Tips: drag a widget to move it. On the ribbon, drag a zone along the bar to reorder it, drag the bar toward another screen edge (or monitor) to move it there, or drag its inner edge to resize it. Double-click either to open these settings; right-click for menus.";
             tip.MaximumSize = new Size(540, 0);
             tip.AutoSize = true;
             tip.ForeColor = SystemColors.GrayText;
@@ -408,6 +414,15 @@ namespace TimeZoneWidgets
         {
             b.BackColor = c;
             b.ForeColor = Theme.Luminance(c) < 0.5 ? Color.White : Color.Black;
+        }
+
+        void MoveSelected(int delta)
+        {
+            int i = _widgetList.SelectedIndex;
+            if (i < 0 || i >= S.Widgets.Count) return;
+            int now = _app.MoveZone(S.Widgets[i], delta);   // refreshes this list via ZonesChanged
+            if (now >= 0 && now < _widgetList.Items.Count) _widgetList.SelectedIndex = now;
+            _widgetList.Focus();
         }
 
         public void RefreshWidgetList()
