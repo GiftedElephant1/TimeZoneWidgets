@@ -1,0 +1,41 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with the compiler built into Windows
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Build with the .NET SDK (checks the csproj too)
+        shell: pwsh
+        run: dotnet build TimeZoneWidgets.csproj -c Release -o out-sdk
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimeZoneWidgets
+          path: |
+            bin/TimeZoneWidgets.exe
+            bin/TimeZoneWidgets.exe.config
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/TimeZoneWidgets.exe
+            bin/TimeZoneWidgets.exe.config
