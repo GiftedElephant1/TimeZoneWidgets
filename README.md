@@ -27,8 +27,9 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   marker on each widget's city. It turns only as real time passes: one rotation per day, with
   the sun fixed on screen so the continents drift through the day/night line as the hours go
   by. Shift+drag it to turn it yourself (the time-driven turning continues from there). Turn that off
-  and the view stays put while only the day/night line moves. A plain drag moves the globe
-  around the desktop (in the ribbon layout too); Shift+drag, Ctrl+drag or the mouse wheel turns it.
+  and the view stays put while only the day/night line moves. Drag the globe itself to turn it
+  (the mouse wheel works too); drag the glowing rim around it, or Shift+drag anywhere, to move it
+  around the desktop, in the ribbon layout too.
 - **Ribbon layout**: instead of separate widgets, show all zones in one bar docked to the top,
   bottom, left or right edge of the screen. A top or bottom ribbon is a thin strip (64 px by
   default, 44 px without the market line) with each zone as a compact cell: the city as a three-letter code (NYC, TPE, AMS;
@@ -90,8 +91,8 @@ Windows still reports "Unknown publisher" and SmartScreen may warn the first tim
 | Widget (double-click) | Convert a time: type a time in that zone and see it in yours, plus the surrounding hours in every zone |
 | Ribbon (double-click a zone) | Same conversion popup for that zone (double-click an empty part of the bar for Settings) |
 | Widget (right-click) | Change time zone, rename, add/remove widget, lock positions, Settings, Exit |
-| Globe (drag) | Move it |
-| Globe (Shift+drag, Ctrl+drag or mouse wheel) | Turn it |
+| Globe (drag the sphere, or mouse wheel) | Turn it |
+| Globe (drag the rim around it, or Shift+drag) | Move it |
 | Globe (right-click) | Turn with the time of day on/off, reset view, hide globe |
 | Ribbon (drag a zone along the bar) | Reorder the zones (the Settings window has ▲ Up / ▼ Down buttons too) |
 | Ribbon (drag away from the bar) | Move it to the nearest edge of whichever monitor the mouse is on |

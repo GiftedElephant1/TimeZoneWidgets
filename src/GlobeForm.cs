@@ -13,14 +13,14 @@ namespace TimeZoneWidgets
     /// A small globe that shows where it is day and night right now, the 24 one-hour time-zone
     /// meridians, and a marker for every clock widget's city. It turns only as real time passes
     /// (one rotation per day, so the sun stays put and the Earth moves under it) or when the
-    /// user turns it (Shift+drag, Ctrl+drag or the mouse wheel). A plain drag moves the globe
-    /// around the desktop, in the floating and the ribbon layout alike.
+    /// user turns it (drag on the sphere, or the mouse wheel). Dragging the glowing rim around
+    /// the sphere (or Shift/Ctrl+drag anywhere) moves the globe, in any layout.
     /// </summary>
     public class GlobeForm : LayeredWindow
     {
         const double Deg = Math.PI / 180.0;
         const float BaseDiameter = 172f;   // design pixels at 100% scale
-        const float Glow = 10f;            // soft halo outside the sphere, design pixels
+        const float Glow = 16f;            // soft halo outside the sphere, design pixels; also the drag handle
         const int SecondsBetweenTimeFrames = 15;   // 15 s = 1/16 of a degree of real rotation
 
         readonly Timer _timer;
@@ -119,8 +119,9 @@ namespace TimeZoneWidgets
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            bool spinModifier = (ModifierKeys & (Keys.Shift | Keys.Control)) != 0;
-            bool wantsMove = e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && !spinModifier);
+            // On the sphere: turn it. On the rim around it (or with Shift/Ctrl, or the middle button): move it.
+            bool moveModifier = (ModifierKeys & (Keys.Shift | Keys.Control)) != 0;
+            bool wantsMove = e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && (moveModifier || !InsideSphere(e.Location)));
             if (wantsMove)
             {
                 BeginMove(e.Location);
@@ -140,6 +141,7 @@ namespace TimeZoneWidgets
                 ContinueMove();
                 return;
             }
+            if (!_spinning) Cursor = InsideSphere(e.Location) ? Cursors.Default : Cursors.SizeAll;
             if (_spinning)
             {
                 int dx = e.X - _lastMouse.X, dy = e.Y - _lastMouse.Y;
@@ -176,6 +178,14 @@ namespace TimeZoneWidgets
             }
         }
 
+        /// <summary>True when a window point is on the sphere itself (not the rim around it).</summary>
+        bool InsideSphere(Point p)
+        {
+            float cx = _size / 2f, cy = _size / 2f, r = _d / 2f - 1.5f * Px;
+            float dx = p.X - cx, dy = p.Y - cy;
+            return dx * dx + dy * dy <= r * r;
+        }
+
         void BuildMenu()
         {
             _menu = new ContextMenuStrip();
@@ -190,7 +200,7 @@ namespace TimeZoneWidgets
             reset.Click += delegate { ResetView(); };
             _menu.Items.Add(reset);
 
-            var hint = new ToolStripMenuItem("Drag to move · Shift+drag or wheel to turn");
+            var hint = new ToolStripMenuItem("Drag the globe to turn it · drag its rim to move it");
             hint.Enabled = false;
             _menu.Items.Add(hint);
             _menu.Items.Add(new ToolStripSeparator());
@@ -276,6 +286,9 @@ namespace TimeZoneWidgets
             using (var path = new GraphicsPath())
             {
                 path.AddEllipse(cx - r, cy - r, 2 * r, 2 * r);
+                // A barely visible disc under the glow keeps the whole rim clickable (fully
+                // transparent pixels of a layered window let clicks fall through).
+                using (var rim = new SolidBrush(Color.FromArgb(10, T.Accent))) g.FillPath(rim, path);
                 using (var brush = new PathGradientBrush(path))
                 {
                     brush.CenterColor = Color.FromArgb(150, T.Accent);
