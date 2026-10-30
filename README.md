@@ -40,6 +40,9 @@ Or dock every zone in one bar at the top, bottom, left or right of the screen:
   screen space" to have maximized windows sit next to it like they do with the taskbar, or
   **Auto-hide** to have it slide away completely and pop back whenever the
   mouse touches that edge of the screen, exactly like the taskbar's auto-hide.
+  While a full-screen app or game is in front, including borderless "windowed full screen" games
+  such as Warcraft III or League of Legends, the bar stays hidden and the edge does nothing, so it
+  never pops up mid-game (switch that off in Settings if you want it anyway).
   With several monitors, pick the one it docks to (or "All monitors" for a bar on each) in
   Settings or the ribbon menu, or simply drag the bar onto another monitor: it moves there and
   leaves the first monitor.
@@ -173,6 +176,7 @@ src/            C# sources (WinForms, .NET Framework 4.8, no third-party package
   StartupManager.cs   HKCU Run key
   ZoneCatalog.cs      280 cities → Windows time zone IDs (+ codes, coordinates); generated from tools/cities.txt
   CityPickerForm.cs   the "Find a city" search dialog
+  FullscreenDetector.cs  is a full-screen app/game in front? (keeps the auto-hide bar away)
   ConvertForm.cs      the time-conversion popup
 assets/app.ico  generated icon
 build.ps1 / build.cmd   zero-install build (+ optional -Sign)

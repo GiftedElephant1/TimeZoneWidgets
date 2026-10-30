@@ -31,7 +31,7 @@ namespace TimeZoneWidgets
         public const string EdgeRight = "right";
         public const int MinRibbonHeight = 26, MaxRibbonHeight = 240;
         public const int DefaultRibbonHeight = 64;
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
         public const int MinRibbonWidth = 120, MaxRibbonWidth = 420;
 
         [DataMember(Order = 0)] public int Version { get; set; }
@@ -78,6 +78,8 @@ namespace TimeZoneWidgets
         [DataMember(Order = 25)] public bool RibbonAllMonitors { get; set; }
         /// <summary>Show each zone's stock market: a countdown to the open/close and a tint while it trades.</summary>
         [DataMember(Order = 26)] public bool ShowMarkets { get; set; }
+        /// <summary>Auto-hide stays hidden while a full-screen app or game (incl. borderless) is in front.</summary>
+        [DataMember(Order = 27)] public bool RibbonHideForGames { get; set; }
 
         public static string Directory
         {
@@ -119,6 +121,7 @@ namespace TimeZoneWidgets
             s.RibbonMonitor = "";
             s.RibbonAllMonitors = false;
             s.ShowMarkets = true;
+            s.RibbonHideForGames = true;
             return s;
         }
 
@@ -188,6 +191,12 @@ namespace TimeZoneWidgets
                 // v1.8.1: the market countdown is a second line, so the default bar is taller.
                 if (RibbonHeight == 44) RibbonHeight = d.RibbonHeight;
                 Version = 5;
+            }
+            if (Version < 6)
+            {
+                // v1.11: don't pop up over full-screen games (missing bool reads as false).
+                RibbonHideForGames = true;
+                Version = 6;
             }
             if (Version < CurrentVersion) Version = CurrentVersion;
             if (Scale < 50 || Scale > 200) Scale = d.Scale;

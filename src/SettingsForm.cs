@@ -21,7 +21,7 @@ namespace TimeZoneWidgets
         ComboBox _ribbonEdge;
         TrackBar _ribbonSize;
         Label _ribbonSizeLabel;
-        CheckBox _ribbonReserve, _ribbonCodes, _ribbonAutoHide;
+        CheckBox _ribbonReserve, _ribbonCodes, _ribbonAutoHide, _ribbonGames;
         ComboBox _ribbonMonitor;
 
         AppSettings S { get { return _app.Settings; } }
@@ -127,6 +127,8 @@ namespace TimeZoneWidgets
             AddRow(table, "", _ribbonCodes);
             _ribbonAutoHide = Check("Auto-hide: slide off-screen, reappear when the mouse touches that edge", delegate { S.RibbonAutoHide = _ribbonAutoHide.Checked; Apply(); RefreshLayout(); });
             AddRow(table, "", _ribbonAutoHide);
+            _ribbonGames = Check("Stay hidden while a full-screen app or game is in front (also borderless / windowed full screen)", delegate { S.RibbonHideForGames = _ribbonGames.Checked; Apply(); });
+            AddRow(table, "", _ribbonGames);
 
             var ribbonSizeRow = Flow();
             _ribbonSize = Slider(AppSettings.MinRibbonHeight, AppSettings.MaxRibbonHeight, 20);
@@ -362,6 +364,7 @@ namespace TimeZoneWidgets
             _ribbonReserve.Checked = !S.RibbonReserveSpace;
             _ribbonCodes.Checked = S.RibbonCityCodes;
             _ribbonAutoHide.Checked = S.RibbonAutoHide;
+            _ribbonGames.Checked = S.RibbonHideForGames;
             var screens = Screen.AllScreens;
             _ribbonMonitor.Items.Clear();
             int selected = -1;
@@ -381,6 +384,7 @@ namespace TimeZoneWidgets
             _ribbonReserve.Enabled = ribbon && !S.RibbonAutoHide;
             _ribbonCodes.Enabled = ribbon;
             _ribbonAutoHide.Enabled = ribbon;
+            _ribbonGames.Enabled = ribbon && S.RibbonAutoHide;
             _loading = was;
         }
 

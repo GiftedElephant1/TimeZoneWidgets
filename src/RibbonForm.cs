@@ -198,7 +198,12 @@ namespace TimeZoneWidgets
 
             var now = DateTime.UtcNow;
             var p = Cursor.Position;
-            bool wanted = _menuOpen || _resizing || _edgeDrag || _reorder || _pendingDrag || AtEdge(p) || Bounds.Contains(p);
+            // A full-screen app or game in front (exclusive or borderless) keeps the bar out of the way:
+            // the screen edge does nothing, and a bar that is showing tucks itself away.
+            bool gameInFront = S.RibbonHideForGames && !_menuOpen && !_resizing && !_edgeDrag && !_reorder && !_pendingDrag
+                               && FullscreenDetector.IsFullscreenAppOn(TargetScreen);
+            bool wanted = !gameInFront && (_menuOpen || _resizing || _edgeDrag || _reorder || _pendingDrag || AtEdge(p) || Bounds.Contains(p));
+            if (gameInFront) _lastSeen = DateTime.MinValue;
             if (wanted) _lastSeen = now;
             int target = (wanted || (now - _lastSeen).TotalMilliseconds < HideDelayMs) ? 0 : HiddenSlide;
             if (target == _slide) return;
