@@ -163,7 +163,7 @@ namespace TimeZoneWidgets
             // Globe
             _globe = Check("Show the day/night globe", delegate { _app.SetGlobeVisible(_globe.Checked); });
             AddRow(table, "Globe", _globe);
-            _globeSpin = Check("Turn with the time of day (drag the globe to turn it yourself)", delegate { S.GlobeAutoRotate = _globeSpin.Checked; Apply(); });
+            _globeSpin = Check("Turn with the time of day (Shift+drag or wheel turns it; plain drag moves it)", delegate { S.GlobeAutoRotate = _globeSpin.Checked; Apply(); });
             AddRow(table, "", _globeSpin);
 
             // Startup

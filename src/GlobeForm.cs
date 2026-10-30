@@ -13,7 +13,8 @@ namespace TimeZoneWidgets
     /// A small globe that shows where it is day and night right now, the 24 one-hour time-zone
     /// meridians, and a marker for every clock widget's city. It turns only as real time passes
     /// (one rotation per day, so the sun stays put and the Earth moves under it) or when the
-    /// user drags it. Shift+drag (or middle-drag) moves it.
+    /// user turns it (Shift+drag, Ctrl+drag or the mouse wheel). A plain drag moves the globe
+    /// around the desktop, in the floating and the ribbon layout alike.
     /// </summary>
     public class GlobeForm : LayeredWindow
     {
@@ -118,7 +119,8 @@ namespace TimeZoneWidgets
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            bool wantsMove = e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && (ModifierKeys & Keys.Shift) == Keys.Shift);
+            bool spinModifier = (ModifierKeys & (Keys.Shift | Keys.Control)) != 0;
+            bool wantsMove = e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && !spinModifier);
             if (wantsMove)
             {
                 BeginMove(e.Location);
@@ -156,6 +158,14 @@ namespace TimeZoneWidgets
             if (_spinning) _spinning = false;
         }
 
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            // Each notch turns the globe 10 degrees.
+            SetCenterLon(_centerLon - e.Delta / 120 * 10.0);
+            Render(true);
+        }
+
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
@@ -180,7 +190,7 @@ namespace TimeZoneWidgets
             reset.Click += delegate { ResetView(); };
             _menu.Items.Add(reset);
 
-            var hint = new ToolStripMenuItem("Drag to turn · Shift+drag to move");
+            var hint = new ToolStripMenuItem("Drag to move · Shift+drag or wheel to turn");
             hint.Enabled = false;
             _menu.Items.Add(hint);
             _menu.Items.Add(new ToolStripSeparator());
