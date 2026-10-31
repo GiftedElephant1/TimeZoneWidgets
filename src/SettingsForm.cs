@@ -219,6 +219,12 @@ namespace TimeZoneWidgets
             tip.ForeColor = SystemColors.GrayText;
             tip.Margin = new Padding(3, 10, 3, 3);
             AddRow(table, "", tip);
+            var where = new Label();
+            where.AutoSize = true;
+            where.MaximumSize = new Size(540, 0);
+            where.ForeColor = AppSettings.LastSaveError != null ? Color.Firebrick : SystemColors.GrayText;
+            where.Text = "Settings file: " + AppSettings.FilePath + (AppSettings.LastSaveError != null ? "  —  " + AppSettings.LastSaveError : "  (saved after every change)");
+            AddRow(table, "", where);
 
             var close = new Button();
             close.Text = "Close";

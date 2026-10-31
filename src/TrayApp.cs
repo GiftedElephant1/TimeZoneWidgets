@@ -93,19 +93,29 @@ namespace TimeZoneWidgets
             }
         }
 
+        /// <summary>The zones a fresh install starts with, in this order.</summary>
+        public static readonly string[] DefaultCities = { "San Francisco", "New York", "Medellín", "London", "Amsterdam", "Mumbai", "Taipei", "Seoul", "Tokyo" };
+
         void AddDefaultWidgets()
         {
-            var ids = new List<string>();
-            ids.Add(TimeZoneInfo.Local.Id);
-            foreach (var id in new[] { "Eastern Standard Time", "GMT Standard Time", "Tokyo Standard Time" })
-                if (!ids.Contains(id) && ZoneCatalog.Exists(id)) ids.Add(id);
-            foreach (var id in ids)
+            foreach (var city in DefaultCities)
             {
+                ZoneEntry entry = null;
+                foreach (var z in ZoneCatalog.Popular) if (z.City == city) { entry = z; break; }
+                if (entry == null || !ZoneCatalog.Exists(entry.WindowsId)) continue;
                 var cfg = new WidgetConfig();
-                cfg.TimeZoneId = id;
-                cfg.Label = id == TimeZoneInfo.Local.Id ? ZoneCatalog.LocalCity() : ZoneCatalog.LabelFor(id);
+                cfg.TimeZoneId = entry.WindowsId;
+                cfg.Label = entry.City;
                 cfg.X = -1;
                 cfg.Y = -1;
+                Settings.Widgets.Add(cfg);
+            }
+            if (Settings.Widgets.Count == 0)
+            {
+                var cfg = new WidgetConfig();
+                cfg.TimeZoneId = TimeZoneInfo.Local.Id;
+                cfg.Label = ZoneCatalog.LocalCity();
+                cfg.X = -1; cfg.Y = -1;
                 Settings.Widgets.Add(cfg);
             }
         }

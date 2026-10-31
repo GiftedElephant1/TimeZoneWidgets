@@ -95,10 +95,10 @@ namespace TimeZoneWidgets
         {
             var s = new AppSettings();
             s.Version = CurrentVersion;
-            s.Use24Hour = false;
+            s.Use24Hour = true;
             s.ShowSeconds = false;
             s.ShowUtcOffset = true;
-            s.Scale = 100;
+            s.Scale = 92;
             s.Opacity = 92;
             s.AutoTheme = true;
             s.BackgroundColor = "#16182A";
@@ -111,13 +111,13 @@ namespace TimeZoneWidgets
             s.GlobeAutoRotate = true;
             s.GlobeX = -1;
             s.GlobeY = -1;
-            s.LayoutMode = LayoutFloating;
-            s.RibbonEdge = EdgeTop;
+            s.LayoutMode = LayoutRibbon;
+            s.RibbonEdge = EdgeLeft;
             s.RibbonHeight = DefaultRibbonHeight;
             s.RibbonWidth = 210;
             s.RibbonReserveSpace = false;
             s.RibbonCityCodes = true;
-            s.RibbonAutoHide = false;
+            s.RibbonAutoHide = true;
             s.RibbonMonitor = "";
             s.RibbonAllMonitors = false;
             s.ShowMarkets = true;
@@ -127,30 +127,60 @@ namespace TimeZoneWidgets
 
         public static AppSettings Load()
         {
+            // The real file first; if it is missing or unreadable, the backup from the previous
+            // save, then a temp file a crash may have left behind. Only when none of them can be
+            // read do we start from defaults, and then the unreadable file is set aside rather
+            // than overwritten.
+            foreach (var path in new[] { FilePath, BackupPath, FilePath + ".tmp" })
+            {
+                var loaded = TryLoad(path);
+                if (loaded != null)
+                {
+                    if (path != FilePath)
+                    {
+                        LastSaveError = "Settings were recovered from " + Path.GetFileName(path) + ".";
+                        SetAsideUnreadable();   // so the next save does not turn the bad file into the backup
+                    }
+                    return loaded;
+                }
+            }
+            SetAsideUnreadable();
+            return CreateDefault();
+        }
+
+        /// <summary>Renames an unreadable settings.json so it is kept for inspection instead of overwritten.</summary>
+        static void SetAsideUnreadable()
+        {
             try
             {
                 if (File.Exists(FilePath))
+                    File.Move(FilePath, Path.Combine(Directory, "settings.unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json"));
+            }
+            catch { }
+        }
+
+        static AppSettings TryLoad(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return null;
+                // Tolerate a UTF-8 byte-order mark (Notepad and PowerShell like to add one).
+                var bytes = File.ReadAllBytes(path);
+                if (bytes.Length < 2) return null;
+                int skip = (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) ? 3 : 0;
+                using (var stream = new MemoryStream(bytes, skip, bytes.Length - skip))
                 {
-                    // Tolerate a UTF-8 byte-order mark (Notepad and PowerShell like to add one).
-                    var bytes = File.ReadAllBytes(FilePath);
-                    int skip = (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) ? 3 : 0;
-                    using (var stream = new MemoryStream(bytes, skip, bytes.Length - skip))
-                    {
-                        var serializer = new DataContractJsonSerializer(typeof(AppSettings));
-                        var loaded = (AppSettings)serializer.ReadObject(stream);
-                        if (loaded != null)
-                        {
-                            loaded.Normalize();
-                            return loaded;
-                        }
-                    }
+                    var serializer = new DataContractJsonSerializer(typeof(AppSettings));
+                    var loaded = (AppSettings)serializer.ReadObject(stream);
+                    if (loaded == null) return null;
+                    loaded.Normalize();
+                    return loaded;
                 }
             }
             catch
             {
-                // A corrupt file should never stop the app from starting; fall back to defaults.
+                return null;
             }
-            return CreateDefault();
         }
 
         /// <summary>Fill in anything missing from an older or hand-edited settings file.</summary>
@@ -221,6 +251,15 @@ namespace TimeZoneWidgets
                 if (w.Label == "Local" && w.TimeZoneId == TimeZoneInfo.Local.Id) w.Label = ZoneCatalog.LocalCity();
         }
 
+        public static string BackupPath
+        {
+            get { return Path.Combine(Directory, "settings.backup.json"); }
+        }
+
+        /// <summary>Writes the settings atomically: the new content goes to a temp file, then
+        /// replaces the real file in one step (keeping the previous version as a backup). The
+        /// settings file is therefore never missing or half-written, even if the PC is shut down
+        /// or the app is killed mid-save.</summary>
         public void Save()
         {
             try
@@ -231,14 +270,32 @@ namespace TimeZoneWidgets
                 {
                     var serializer = new DataContractJsonSerializer(typeof(AppSettings));
                     serializer.WriteObject(stream, this);
+                    stream.Flush(true);
                 }
-                if (File.Exists(FilePath)) File.Delete(FilePath);
-                File.Move(tmp, FilePath);
+                if (File.Exists(FilePath))
+                {
+                    try { File.Replace(tmp, FilePath, BackupPath); }
+                    catch (IOException)
+                    {
+                        // Replace needs both files on one volume and no locks; fall back to copies.
+                        File.Copy(FilePath, BackupPath, true);
+                        File.Copy(tmp, FilePath, true);
+                        File.Delete(tmp);
+                    }
+                }
+                else
+                {
+                    File.Move(tmp, FilePath);
+                }
+                LastSaveError = null;
             }
-            catch
+            catch (Exception ex)
             {
-                // Saving is best-effort; a locked file should not crash the widgets.
+                LastSaveError = ex.Message;
             }
         }
+
+        /// <summary>The last reason a save failed (or a note that settings were recovered), shown in Settings.</summary>
+        public static string LastSaveError;
     }
 }
